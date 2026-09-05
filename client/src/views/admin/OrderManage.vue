@@ -1,0 +1,203 @@
+<template>
+  <div class="admin-page">
+    <!-- 页面标题 -->
+    <div class="page-header">
+      <h2 class="page-title">订单管理</h2>
+      <p class="page-subtitle">查看全站交易订单</p>
+    </div>
+
+    <div class="admin-card">
+      <!-- 筛选 -->
+      <div class="filter-bar">
+        <el-select v-model="status" placeholder="全部状态" clearable @change="loadData" class="select-rounded">
+          <el-option label="待卖家确认" value="pending" />
+          <el-option label="已确认" value="confirmed" />
+          <el-option label="已完成" value="completed" />
+          <el-option label="已取消" value="cancelled" />
+        </el-select>
+      </div>
+
+      <!-- 表格：弹性撑满卡片剩余高度，行多时内部滚动 -->
+      <div class="table-wrap">
+      <el-table :data="orders" v-loading="loading" class="apple-table" height="100%">
+        <el-table-column prop="orderNo" label="订单号" width="180">
+          <template #default="{ row }">
+            <span class="order-no">{{ row.orderNo }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="商品" min-width="200">
+          <template #default="{ row }">
+            <div class="cell-product">
+              <SmartImage
+                class="cell-img"
+                :src="(row.product?.images && row.product.images[0]) || ''"
+                emoji="📦"
+                :alt="row.product?.title"
+              />
+              <span class="cell-title">{{ row.product?.title || '商品已删除' }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="买家" width="100">
+          <template #default="{ row }">{{ row.buyer?.nickname || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="卖家" width="100">
+          <template #default="{ row }">{{ row.seller?.nickname || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="价格" width="90">
+          <template #default="{ row }"><span class="price">￥{{ row.price }}</span></template>
+        </el-table-column>
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <span class="status-pill" :class="statusClass(row.status)">{{ statusText(row.status) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="下单时间" width="150">
+          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="100">
+          <template #default="{ row }">
+            <div class="action-group">
+              <button
+                v-if="row.status !== 'cancelled'"
+                class="btn-text btn-danger"
+                @click="handleCancel(row)"
+              >取消交易</button>
+              <span v-else class="text-muted">已取消</span>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+      </div>
+
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="page"
+          :total="total"
+          :page-size="15"
+          layout="prev, pager, next, total"
+          @current-change="loadData"
+          background
+        />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { getAdminOrders, adminCancelOrder } from '@/api'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import SmartImage from '@/components/SmartImage.vue'
+
+const route = useRoute()
+const loading = ref(false)
+const orders = ref([])
+const page = ref(1)
+const total = ref(0)
+const status = ref('')
+
+const loadData = async () => {
+  loading.value = true
+  try {
+    const res = await getAdminOrders({ page: page.value, pageSize: 15, status: status.value })
+    orders.value = res.data.list
+    total.value = res.data.total
+  } catch (e) {} finally { loading.value = false }
+}
+
+const statusText = (s) => ({ pending: '待卖家确认', confirmed: '已确认', completed: '已完成', cancelled: '已取消' })[s] || s
+const statusClass = (s) => ({
+  pending: 'pill-warning',
+  confirmed: 'pill-blue',
+  completed: 'pill-success',
+  cancelled: 'pill-gray'
+})[s] || 'pill-gray'
+const formatDate = (d) => new Date(d).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+
+const handleCancel = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要取消订单「${row.orderNo}」吗？取消后商品将恢复上架。`,
+      '取消交易',
+      { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' }
+    )
+    await adminCancelOrder(row.id)
+    ElMessage.success('交易已取消，商品已恢复上架')
+    loadData()
+  } catch (e) {}
+}
+
+onMounted(() => {
+  // 支持从看板等页面携带 status 参数跳转（如 /admin/orders?status=pending）
+  if (route.query.status) status.value = route.query.status
+  loadData()
+})
+</script>
+
+<style scoped>
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.select-rounded {
+  width: 140px;
+}
+
+.order-no {
+  font-size: 12px;
+  color: var(--admin-text-tertiary);
+  font-family: 'SF Mono', Consolas, monospace;
+}
+
+.cell-product {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cell-img {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cell-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--admin-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.text-muted {
+  font-size: 12px;
+  color: var(--admin-text-tertiary);
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 操作列：flex布局保证表头与内容对齐 */
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.apple-table :deep(.el-table__body-wrapper .el-table__row td:last-child .cell),
+.apple-table :deep(.el-table__header-wrapper th:last-child .cell) {
+  display: flex;
+  align-items: center;
+}
+</style>

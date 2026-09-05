@@ -1,0 +1,54 @@
+# ============================================================
+# 校园二手交易平台 Spring Boot 后端配置
+# 原则：所有对外行为（端口、JWT、RSA、上传目录、时区）与原 Express
+# 后端 1:1 对齐；敏感项支持环境变量覆盖（${ENV:默认值} 语法）
+# ============================================================
+
+server:
+  port: ${PORT:3000}                      # 与原 Express 一致（Nginx upstream 3000 无需改动）
+  error:
+    include-message: never
+
+spring:
+  application:
+    name: campus-flea-market-server
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:campus_flea_market}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:123456}       # 改为你机器上 MySQL 的实际密码
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 5MB                  # multer 限制：文件不能超过 5MB
+      max-request-size: 15MB
+  jackson:
+    time-zone: Asia/Shanghai
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    banner: false
+
+# ---------- 业务配置（与原 .env 对齐） ----------
+app:
+  # JWT 密钥：必须与原 Express .env 的 JWT_SECRET 完全一致，
+  # 否则旧 token 无法通过校验（迁移期间两后端共存时尤其重要）
+  jwt-secret: ${JWT_SECRET:07be7489fa0de11a0d6f995f667e2e3c0e0ee4ef59e6d4064c89c17998123ef5a093c0a736191cca9636a0c66d41b4b3}
+  # JWT 过期时间（秒）：对应原 JWT_EXPIRES=7d
+  jwt-expires-seconds: 604800
+  # RSA 私钥路径（PKCS8 PEM），与前端 jsencrypt 公钥配对
+  rsa-private-key-path: ${RSA_PRIVATE_KEY_PATH:keys/rsa_private.pem}
+  # 上传目录：直接复用原 Express 的 uploads（两后端共存时图片互通）
+  upload-dir: ${UPLOAD_DIR:../server/src/uploads}
+  # 前端地址（CORS 白名单）
+  client-url: ${CLIENT_URL:http://localhost:5173}
+  # 前端构建产物目录（存在时开启 SPA 回退，与 app.js 逻辑一致）
+  client-dist-dir: ${CLIENT_DIST_DIR:../client/dist}
+  # 是否信任反向代理（与原 TRUST_PROXY 一致；为 true 时取 X-Forwarded-For 真实 IP 做限流）
+  trusted-proxy: ${TRUST_PROXY:true}
+
+logging:
+  level:
+    com.campusfleamarket: info
