@@ -1,8 +1,12 @@
 node_modules/
 client/node_modules/
+server/node_modules/
 client/dist/
 .idea/
 .vscode/
+
+# Vite 调试时生成的临时 HMR 文件
+client/vite.config.js.timestamp-*.mjs
 
 # 环境变量文件（含JWT密钥、数据库密码，禁止提交）
 .env
@@ -20,8 +24,7 @@ dist_old*/
 # 生产环境变量（避免误提交，内容随环境不同）
 .env.production
 
-# 实验性质(SpringBoot迁移)构建产物与密钥
-springboot-server/target/
-springboot-server/keys/
+# Spring Boot 实验性迁移目录（老师已确认采用 Node 方案，迁移代码本地保留不追踪）
+springboot-server/
 # 临时验证产物
 dist-verify/
