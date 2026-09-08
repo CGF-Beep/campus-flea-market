@@ -76,6 +76,35 @@
       </el-table>
       </div>
 
+      <!-- 移动端卡片列表（≤768 显示，桌面隐藏） -->
+      <div class="mobile-list">
+        <div v-for="row in users" :key="row.id" class="m-card">
+          <div class="m-head">
+            <div class="m-avatar" :class="{ 'no-img': !row.avatar }">
+              <img v-if="row.avatar" :src="row.avatar" alt="avatar" />
+              <span v-else>{{ (row.nickname || row.username || '用')[0] }}</span>
+            </div>
+            <div class="m-info">
+              <div class="m-name">{{ row.nickname || row.username }}</div>
+              <div class="m-sub">@{{ row.username }}</div>
+            </div>
+            <button
+              class="btn-text"
+              :class="row.status === 1 ? 'btn-danger' : 'btn-success'"
+              @click="toggleStatus(row)"
+            >{{ row.status === 1 ? '禁用' : '启用' }}</button>
+          </div>
+          <div class="m-grid">
+            <div class="m-cell"><span class="m-label">学号</span><span class="m-value">{{ row.studentId || '—' }}</span></div>
+            <div class="m-cell"><span class="m-label">学院</span><span class="m-value">{{ row.college || '—' }}</span></div>
+            <div class="m-cell"><span class="m-label">手机</span><span class="m-value">{{ row.phone || '—' }}</span></div>
+            <div class="m-cell"><span class="m-label">角色</span><span class="status-pill" :class="row.role === 'admin' ? 'pill-warning' : 'pill-blue'">{{ row.role === 'admin' ? '管理员' : '用户' }}</span></div>
+            <div class="m-cell"><span class="m-label">状态</span><span class="status-pill" :class="row.status === 1 ? 'pill-success' : 'pill-danger'">{{ row.status === 1 ? '正常' : '禁用' }}</span></div>
+          </div>
+        </div>
+        <el-empty v-if="!loading && users.length === 0" description="暂无用户" :image-size="100" />
+      </div>
+
       <div class="pagination">
         <el-pagination
           v-model:current-page="page"
@@ -197,5 +226,125 @@ onMounted(() => loadData())
 .apple-table :deep(.el-table__body-wrapper td.el-table__cell) {
   padding-top: 7px;
   padding-bottom: 7px;
+}
+
+/* ================================================================
+   移动端响应式（≤768px）：表格 → 卡片列表
+   ================================================================ */
+.mobile-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .filter-item {
+    width: 100%;
+  }
+
+  .table-wrap {
+    display: none;
+  }
+
+  .mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .m-card {
+    border-radius: 16px;
+    border: 1px solid var(--admin-border);
+    padding: 14px;
+  }
+
+  .m-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--admin-border);
+  }
+
+  .m-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .m-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .m-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .m-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--admin-text);
+  }
+
+  .m-sub {
+    font-size: 12px;
+    color: var(--admin-text-tertiary);
+    margin-top: 1px;
+  }
+
+  .m-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 14px;
+  }
+
+  .m-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .m-label {
+    font-size: 11px;
+    color: var(--admin-text-tertiary);
+  }
+
+  .m-value {
+    font-size: 13px;
+    color: var(--admin-text);
+    font-weight: 500;
+    word-break: break-all;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+  }
+
+  .pagination {
+    justify-content: center;
+    margin-top: 16px;
+  }
 }
 </style>

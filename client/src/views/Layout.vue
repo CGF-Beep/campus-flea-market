@@ -1,6 +1,6 @@
 <!-- 全局布局框架：顶部毛玻璃导航栏、主内容区、页脚、联系弹窗 -->
 <template>
-  <div class="layout">
+  <div class="layout" :class="{ 'has-mobile-tabbar': showMobileTabBar }">
     <!-- 顶部导航栏 - Apple风格毛玻璃 -->
     <header class="header glass">
       <div class="container header-content">
@@ -131,7 +131,6 @@
         <div class="tab-publish-circle">
           <el-icon :size="24"><Plus /></el-icon>
         </div>
-        <span>发布</span>
       </div>
       <div class="tab-item" :class="{ active: isTabActive('/messages') }" @click="mobileGo('/messages')">
         <el-badge :value="unreadCount" :max="99" :hidden="unreadCount === 0" class="tab-badge">
@@ -298,8 +297,15 @@ const isTabActive = (tab) => {
   return false
 }
 
-// 聊天对话页（/messages/:userId）隐藏底部栏，给聊天全屏空间
-const showMobileTabBar = computed(() => !/^\/messages\/.+/.test(route.path))
+// 需要"全屏专注"的页面隐藏底部栏：
+//  - /messages/:userId 聊天对话页
+//  - /publish、/publish/:id 发布/编辑页（输入框唤起键盘时 TabBar 会被顶起跳动）
+const showMobileTabBar = computed(() => {
+  const p = route.path
+  if (/^\/messages\/.+/.test(p)) return false
+  if (p === '/publish' || p.startsWith('/publish/')) return false
+  return true
+})
 
 const fetchUnread = async () => {
   if (userStore.isLoggedIn) {
@@ -327,6 +333,8 @@ watch(() => route.path, () => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  /* 动态视口（跟随手机地址栏/工具栏收展），减少底部元素跳动；不支持的浏览器回退到 100vh */
+  min-height: 100dvh;
   background: var(--color-bg-secondary);
 }
 
@@ -852,8 +860,25 @@ watch(() => route.path, () => {
     display: none !important;
   }
 
+  .header {
+    flex-shrink: 0;
+  }
+
+  /* App-Shell：页面在 main 内部滚动（body 不滚），
+     避免切页/滚动触发手机浏览器地址栏收展把底部 TabBar 顶得上下跳动 */
+  .layout {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
   .main-content {
-    min-height: calc(100vh - 56px);
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
   /* 页脚隐藏，由底部 TabBar 承担 */
@@ -861,13 +886,11 @@ watch(() => route.path, () => {
     display: none;
   }
 
-  /* 底部导航栏 */
+  /* 底部导航栏：流内元素（不再 fixed），随 App-Shell 底部定位 */
   .mobile-tabbar {
     display: flex;
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    position: relative;
+    flex-shrink: 0;
     z-index: 120;
     height: calc(56px + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
@@ -910,30 +933,27 @@ watch(() => route.path, () => {
     position: relative;
   }
 
+  /* 中间「+」发布按钮：圆形凸起，浮在 tabbar 上方 */
   .tab-publish-circle {
     position: absolute;
-    top: -22px;
+    top: -17px;
     left: 50%;
     transform: translateX(-50%);
-    width: 48px;
-    height: 48px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     background: linear-gradient(135deg, #0071e3, #5ac8fa);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 6px 18px rgba(0, 113, 227, 0.36);
+    box-shadow: 0 8px 20px rgba(0, 113, 227, 0.4);
     border: 3px solid var(--color-bg-secondary);
     transition: transform 0.25s ease, box-shadow 0.25s ease;
   }
 
   .tab-publish:active .tab-publish-circle {
     transform: translateX(-50%) scale(0.92);
-  }
-
-  .tab-publish span {
-    margin-top: 24px;
   }
 
   .tab-badge :deep(.el-badge__content) {
@@ -943,11 +963,6 @@ watch(() => route.path, () => {
     line-height: 16px;
     padding: 0 4px;
     min-width: 16px;
-  }
-
-  /* 页面底部留白，避免被 TabBar 遮挡 */
-  .layout {
-    padding-bottom: calc(64px + env(safe-area-inset-bottom));
   }
 
   /* 联系我们弹窗移动端宽度 */

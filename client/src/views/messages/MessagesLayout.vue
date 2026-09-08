@@ -102,14 +102,15 @@ const isChat = computed(() => /^\/messages\/.+/.test(route.path))
    ================================================================ */
 @media (max-width: 768px) {
   .messages-layout {
-    min-height: calc(100vh - 56px);
+    /* App-Shell 内填满可视容器（外层 main 已内部滚动，这里不再撑高外滚） */
+    min-height: 100%;
     padding: 8px;
   }
 
   .messages-card {
     flex-direction: column;
-    height: calc(100vh - 72px);
-    min-height: 480px;
+    height: 100%;
+    min-height: 0;
     border-radius: var(--radius-lg);
   }
 

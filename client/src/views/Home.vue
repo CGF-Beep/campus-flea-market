@@ -513,7 +513,7 @@ onMounted(async () => {
 
   .product-image {
     height: auto;
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 4 / 3;
   }
 
   .product-image img {

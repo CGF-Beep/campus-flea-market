@@ -70,6 +70,42 @@
       </el-table>
       </div>
 
+      <!-- 移动端卡片列表（≤768 显示，桌面隐藏） -->
+      <div class="mobile-list">
+        <div v-for="row in orders" :key="row.id" class="m-card">
+          <div class="m-head">
+            <SmartImage
+              class="m-img"
+              :src="(row.product?.images && row.product.images[0]) || ''"
+              emoji="📦"
+              :alt="row.product?.title"
+            />
+            <div class="m-info">
+              <div class="m-title">{{ row.product?.title || '商品已删除' }}</div>
+              <div class="m-orderno">{{ row.orderNo }}</div>
+            </div>
+            <div class="m-price">￥{{ row.price }}</div>
+          </div>
+          <div class="m-foot">
+            <div class="m-grid">
+              <div class="m-cell"><span class="m-label">买家</span><span class="m-value">{{ row.buyer?.nickname || '—' }}</span></div>
+              <div class="m-cell"><span class="m-label">卖家</span><span class="m-value">{{ row.seller?.nickname || '—' }}</span></div>
+              <div class="m-cell"><span class="m-label">状态</span><span class="status-pill" :class="statusClass(row.status)">{{ statusText(row.status) }}</span></div>
+              <div class="m-cell"><span class="m-label">下单</span><span class="m-value">{{ formatDate(row.createdAt) }}</span></div>
+            </div>
+            <div class="m-actions">
+              <button
+                v-if="row.status !== 'cancelled'"
+                class="btn-text btn-danger"
+                @click="handleCancel(row)"
+              >取消交易</button>
+              <span v-else class="text-muted">已取消</span>
+            </div>
+          </div>
+        </div>
+        <el-empty v-if="!loading && orders.length === 0" description="暂无订单" :image-size="100" />
+      </div>
+
       <div class="pagination">
         <el-pagination
           v-model:current-page="page"
@@ -199,5 +235,134 @@ onMounted(() => {
 .apple-table :deep(.el-table__header-wrapper th:last-child .cell) {
   display: flex;
   align-items: center;
+}
+
+/* ================================================================
+   移动端响应式（≤768px）：表格 → 卡片列表
+   ================================================================ */
+.mobile-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .select-rounded {
+    width: 100%;
+  }
+
+  .table-wrap {
+    display: none;
+  }
+
+  .mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .m-card {
+    border-radius: 16px;
+    border: 1px solid var(--admin-border);
+    padding: 12px;
+  }
+
+  .m-head {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .m-img {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .m-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .m-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .m-orderno {
+    font-size: 11px;
+    color: var(--admin-text-tertiary);
+    margin-top: 3px;
+    font-family: 'SF Mono', Consolas, monospace;
+  }
+
+  .m-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--admin-price, #e74c3c);
+    flex-shrink: 0;
+  }
+
+  .m-foot {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--admin-border);
+  }
+
+  .m-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+    margin-bottom: 10px;
+  }
+
+  .m-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .m-label {
+    font-size: 11px;
+    color: var(--admin-text-tertiary);
+  }
+
+  .m-value {
+    font-size: 13px;
+    color: var(--admin-text);
+    font-weight: 500;
+    word-break: break-all;
+  }
+
+  .m-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+  }
+
+  .pagination {
+    justify-content: center;
+    margin-top: 16px;
+  }
 }
 </style>

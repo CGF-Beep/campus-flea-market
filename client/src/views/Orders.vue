@@ -359,4 +359,100 @@ onMounted(() => {
   display: flex;
   justify-content: center;
 }
+
+/* ================================================================
+   移动端响应式（≤768px）
+   ================================================================ */
+@media (max-width: 768px) {
+  .page-header {
+    margin-bottom: 16px;
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  .segmented {
+    margin-bottom: 16px;
+  }
+
+  .seg-item {
+    padding: 7px 20px;
+    font-size: 13px;
+  }
+
+  .order-main {
+    padding: 14px;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .order-img {
+    width: 76px;
+    height: 76px;
+    border-radius: var(--radius-sm);
+  }
+
+  .order-info {
+    flex: 1 1 calc(100% - 100px);
+    min-width: 0;
+  }
+
+  .order-title {
+    font-size: 15px;
+  }
+
+  .order-meta {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 6px;
+  }
+
+  .meta-item {
+    font-size: 12px;
+  }
+
+  .order-no {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+
+  /* 右侧价格 + 状态改为横排贴在顶部，缩小字号 */
+  .order-right {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    flex-shrink: 0;
+  }
+
+  .order-price {
+    font-size: 17px;
+  }
+
+  .status-pill {
+    padding: 3px 10px;
+    font-size: 11px;
+  }
+
+  .order-actions {
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 6px 4px;
+  }
+
+  .btn-text {
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
+  .pagination {
+    margin-top: 20px;
+  }
+}
 </style>

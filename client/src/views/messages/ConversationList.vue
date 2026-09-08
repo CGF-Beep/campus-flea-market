@@ -70,11 +70,7 @@ const loadData = async () => {
   try {
     const res = await getConversations()
     conversations.value = res.data
-    // 默认打开第一个会话，让右侧不再是空状态
-    if (route.params.userId === undefined && res.data.length > 0) {
-      const first = res.data[0]
-      selectConv(first)
-    }
+    // 不再自动打开第一个会话，停留在列表页（点会话才进入聊天）
     await nextTick()
     updateConvSlider(activeIndex.value)
   } catch (e) {} finally { loading.value = false }

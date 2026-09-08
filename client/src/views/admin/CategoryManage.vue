@@ -17,16 +17,15 @@
       <div class="table-wrap">
       <el-table :data="categories" v-loading="loading" class="apple-table" height="100%">
         <el-table-column prop="id" label="ID" width="64" />
-        <el-table-column label="分类" min-width="160">
+        <el-table-column label="分类" min-width="180">
           <template #default="{ row }">
             <div class="cell-cat">
-              <span class="cat-emoji">{{ categoryEmoji[row.id] || '✨' }}</span>
+              <span class="cat-icon-box">
+                <CategoryIcon :category-id="row.id" />
+              </span>
               <span class="cat-name">{{ row.name }}</span>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column prop="icon" label="图标名" min-width="120">
-          <template #default="{ row }">{{ row.icon || '—' }}</template>
         </el-table-column>
         <el-table-column prop="sort" label="排序" width="80" />
         <el-table-column label="状态" width="90">
@@ -54,8 +53,8 @@
         <el-form-item label="分类名称">
           <el-input v-model="form.name" placeholder="如：数码产品" class="input-rounded" />
         </el-form-item>
-        <el-form-item label="图标 emoji">
-          <el-input v-model="form.icon" placeholder="如：📱（用于前端展示）" class="input-rounded" />
+        <el-form-item label="图标代码">
+          <el-input v-model="form.icon" placeholder="可选，语义化标识如：mobile-phone / book" class="input-rounded" />
         </el-form-item>
         <el-form-item label="排序">
           <el-input-number v-model="form.sort" :min="0" />
@@ -77,6 +76,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { getCategories, createCategory, updateCategory, deleteCategory } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import CategoryIcon from '@/components/CategoryIcon.vue'
 
 const loading = ref(false)
 const categories = ref([])
@@ -154,11 +154,24 @@ onMounted(() => loadData())
 .cell-cat {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-.cat-emoji {
-  font-size: 22px;
+.cat-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(79, 70, 229, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cat-icon-box :deep(.category-svg-icon) {
+  width: 22px;
+  height: 22px;
+  color: var(--admin-primary);
 }
 
 .cat-name {

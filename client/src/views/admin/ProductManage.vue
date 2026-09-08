@@ -74,6 +74,39 @@
       </el-table>
       </div>
 
+      <!-- 移动端卡片列表（≤768 显示，桌面隐藏） -->
+      <div class="mobile-list">
+        <div v-for="row in products" :key="row.id" class="m-card">
+          <div class="m-head">
+            <SmartImage
+              class="m-img"
+              :src="(row.images && row.images[0]) || ''"
+              emoji="📦"
+              :alt="row.title"
+            />
+            <div class="m-info">
+              <div class="m-title">{{ row.title }}</div>
+              <div class="m-sub">{{ row.category?.name || '—' }}</div>
+              <div class="m-price">￥{{ row.price }}</div>
+            </div>
+          </div>
+          <div class="m-foot">
+            <div class="m-meta">
+              <span class="m-label">发布者</span>
+              <span class="m-value">{{ row.user?.nickname || '—' }}</span>
+              <span class="status-pill" :class="statusClass(row.status)">{{ statusText(row.status) }}</span>
+            </div>
+            <div class="m-actions">
+              <button class="btn-text btn-success" v-if="row.status === 'pending'" @click="handleApprove(row)">通过</button>
+              <button class="btn-text btn-danger" v-if="row.status === 'pending'" @click="handleReject(row)">拒绝</button>
+              <button class="btn-text btn-danger" v-if="row.status === 'on_sale'" @click="handleRemove(row)">下架</button>
+              <button class="btn-text btn-danger" @click="handleDelete(row)">删除</button>
+            </div>
+          </div>
+        </div>
+        <el-empty v-if="!loading && products.length === 0" description="暂无商品" :image-size="100" />
+      </div>
+
       <div class="pagination">
         <el-pagination
           v-model:current-page="page"
@@ -256,5 +289,125 @@ onMounted(() => loadData())
 .apple-table :deep(.el-table__header-wrapper th:last-child .cell) {
   display: flex;
   align-items: center;
+}
+
+/* ================================================================
+   移动端响应式（≤768px）：表格 → 卡片列表
+   ================================================================ */
+.mobile-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .filter-item,
+  .select-rounded {
+    width: 100%;
+  }
+
+  .table-wrap {
+    display: none;
+  }
+
+  .mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .m-card {
+    border-radius: 16px;
+    border: 1px solid var(--admin-border);
+    padding: 12px;
+  }
+
+  .m-head {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .m-img {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .m-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .m-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text);
+    line-height: 1.4;
+    /* 允许两行省略 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .m-sub {
+    font-size: 12px;
+    color: var(--admin-text-tertiary);
+    margin-top: 3px;
+  }
+
+  .m-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--admin-price, #e74c3c);
+    margin-top: 4px;
+  }
+
+  .m-foot {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--admin-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .m-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .m-actions {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+  }
+
+  .pagination {
+    justify-content: center;
+    margin-top: 16px;
+  }
 }
 </style>

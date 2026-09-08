@@ -110,7 +110,7 @@ const tabs = [
   { label: '待审核', value: 'pending' },
   { label: '在售', value: 'on_sale' },
   { label: '已售', value: 'sold' },
-  { label: '已下架', value: 'removed' }
+  { label: '下架', value: 'removed' }
 ]
 
 const { containerRef: tabRef, sliderStyle, updateSlider } = useTabSlider()
@@ -347,5 +347,100 @@ onMounted(() => {
   margin-top: 32px;
   display: flex;
   justify-content: center;
+}
+
+/* ================================================================
+   移动端响应式（≤768px）
+   ================================================================ */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  .publish-btn {
+    align-self: flex-start;
+  }
+
+  .segmented {
+    margin-bottom: 16px;
+    gap: 4px;
+  }
+
+  .seg-item {
+    padding: 7px 16px;
+    font-size: 13px;
+  }
+
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .product-card:hover {
+    transform: none;
+  }
+
+  .prod-img {
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+
+  .prod-body {
+    padding: 10px 10px 6px;
+  }
+
+  .prod-title {
+    font-size: 13px;
+  }
+
+  .prod-row {
+    margin-top: 6px;
+  }
+
+  .prod-price {
+    font-size: 15px;
+  }
+
+  .prod-meta {
+    margin-top: 4px;
+    padding-top: 4px;
+  }
+
+  .meta-item {
+    font-size: 11px;
+  }
+
+  /* 4 个操作按钮改为可换行 + 紧凑 */
+  .prod-actions {
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 0 4px 8px;
+  }
+
+  .btn-text {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .status-pill {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+
+  .pagination {
+    margin-top: 20px;
+  }
 }
 </style>

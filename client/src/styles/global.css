@@ -101,6 +101,8 @@ input, textarea, select {
 .page-content {
   padding: 40px 0 60px;
   min-height: calc(100vh - 64px);
+  /* 动态视口兜底：手机地址栏/工具栏收展时跟随，减少底部跳动；不支持的浏览器回退上行 */
+  min-height: calc(100dvh - 64px);
   background: var(--color-bg-secondary);
 }
 

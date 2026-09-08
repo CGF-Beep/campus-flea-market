@@ -46,6 +46,33 @@
       </div>
     </aside>
 
+    <!-- 移动端顶部 nav（≤768 显示）：用户头像 + 横向 tab + 返回 -->
+    <header class="mobile-topnav">
+      <div class="topnav-inner">
+        <div class="topnav-user">
+          <div class="user-avatar-sm">
+            <img v-if="userStore.user?.avatar" :src="userStore.user.avatar" alt="avatar" />
+            <span v-else>{{ userInitial }}</span>
+          </div>
+        </div>
+        <nav class="topnav-menu">
+          <a
+            v-for="item in menuItems"
+            :key="item.path"
+            class="topnav-item"
+            :class="{ active: isActive(item.path) }"
+            @click="navigate(item.path)"
+          >
+            <el-icon :size="15"><component :is="item.icon" /></el-icon>
+            <span>{{ item.label }}</span>
+          </a>
+        </nav>
+        <a class="topnav-back" @click="$router.push('/')" title="返回前台">
+          <el-icon :size="18"><ArrowLeft /></el-icon>
+        </a>
+      </div>
+    </header>
+
     <!-- 主内容区域 -->
     <main class="admin-main">
       <div class="admin-content">
@@ -317,52 +344,169 @@ onMounted(() => {
   background: transparent;
 }
 
-/* 响应式：PC 端保持侧边栏，小屏简化 */
+/* 响应式：≤1200 全部切移动版（iPad 横屏/小 PC 也隐藏侧边栏） */
 @media (max-width: 1200px) {
   .sidebar {
-    width: 260px;
+    display: none !important;
   }
   .admin-main {
-    margin-left: 260px;
+    margin-left: 0 !important;
+  }
+  .mobile-topnav {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--admin-card);
+    border-bottom: 1px solid var(--admin-border);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
   }
 }
 
 @media (max-width: 992px) {
+  /* ≤992 隐藏侧边栏（加 !important 防上层覆盖），启用顶部水平 nav */
   .sidebar {
-    width: 88px;
-    padding: 16px 0 16px 16px;
-  }
-  .sidebar-inner {
-    padding: 20px 12px;
-    align-items: center;
-  }
-  .user-card {
-    flex-direction: column;
-    padding: 14px 8px;
-    gap: 10px;
-  }
-  .user-avatar {
-    width: 44px;
-    height: 44px;
-    font-size: 16px;
-  }
-  .user-info {
-    display: none;
-  }
-  .nav-label,
-  .nav-badge {
-    display: none;
-  }
-  .nav-item {
-    justify-content: center;
-    padding: 12px;
-  }
-  .nav-icon {
-    width: 40px;
-    height: 40px;
+    display: none !important;
   }
   .admin-main {
-    margin-left: 104px;
+    margin-left: 0 !important;
+  }
+  .mobile-topnav {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--admin-card);
+    border-bottom: 1px solid var(--admin-border);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  }
+}
+
+/* ================================================================
+   移动端响应式（≤768px）：sidebar 隐藏，顶部水平 nav
+   ================================================================ */
+.mobile-topnav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* 纵向堆叠：顶部 nav 在上，内容区全宽在下（避免横向 flex 撑破视口） */
+  .admin-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .admin-main {
+    margin-left: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  .admin-content {
+    padding: 16px 14px 32px;
+  }
+
+  .mobile-topnav {
+    display: block;
+    width: 100%;
+    flex: none;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--admin-card);
+    border-bottom: 1px solid var(--admin-border);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  }
+
+  .topnav-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .user-avatar-sm {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--admin-primary), #6366f1);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .user-avatar-sm img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .topnav-menu {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* 隐藏滚动条但保留滚动 */
+    scrollbar-width: none;
+  }
+
+  .topnav-menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topnav-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--admin-text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .topnav-item.active {
+    background: var(--admin-primary-light);
+    color: var(--admin-primary);
+  }
+
+  .topnav-item:active {
+    background: var(--admin-primary-soft);
+  }
+
+  .topnav-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--admin-text);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .topnav-back:active {
+    background: rgba(0, 0, 0, 0.1);
+    transform: scale(0.92);
   }
 }
 </style>

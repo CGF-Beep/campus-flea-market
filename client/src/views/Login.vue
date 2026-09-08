@@ -414,22 +414,32 @@ const handleLogin = async () => {
 }
 
 /* ===== 响应式：移动端单列垂直布局 ===== */
-@media (max-width: 900px) {
+@media (max-width: 768px) {
+  /* ≤768 完全上下堆叠撑满（与项目其他视图断点一致） */
   .login-page {
-    justify-content: center;
-    padding: 0 24px;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 24px 20px calc(80px + env(safe-area-inset-bottom));
+    align-items: stretch;
   }
   .brand {
     position: static;
     transform: none;
-    margin: 56px auto 8px;
+    margin: 12px auto 20px;
     text-align: center;
-    max-width: 520px;
+    max-width: 100%;
   }
-  .brand-logo { margin-bottom: 22px; }
-  .brand h2 { font-size: 32px; margin-bottom: 16px; }
-  .brand p { font-size: 15px; }
-  .login-glass { max-width: 460px; margin: 20px auto 64px; }
+  .brand-logo { margin-bottom: 14px; }
+  .brand h2 { font-size: 26px; margin-bottom: 8px; }
+  .brand p { font-size: 14px; }
+  .login-glass {
+    max-width: 100%;
+    margin: 0;
+    padding: 28px 22px 32px;
+    border-radius: 22px;
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+  }
 }
 
 @media (max-width: 520px) {

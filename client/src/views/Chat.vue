@@ -503,4 +503,85 @@ watch(() => route.params.userId, (newId, oldId) => {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ================================================================
+   移动端响应式（≤768px）
+   ================================================================ */
+@media (max-width: 768px) {
+  .topbar-inner {
+    padding: 0 12px;
+    height: 52px;
+    gap: 6px;
+  }
+  .peer-name {
+    font-size: 15px;
+  }
+  .peer-sub {
+    font-size: 11px;
+    margin-top: 1px;
+  }
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+  .chat-messages {
+    padding: 14px 12px 24px;
+  }
+  .chat-empty {
+    padding-top: 80px;
+  }
+  .msg-row {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .msg-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  .avatar-fallback {
+    font-size: 13px;
+  }
+  .msg-stack {
+    max-width: 78%;
+  }
+  .msg-bubble {
+    padding: 9px 13px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .bubble-other,
+  .bubble-system {
+    border-radius: 16px 16px 16px 5px;
+  }
+  .bubble-self {
+    border-radius: 16px 16px 5px 16px;
+  }
+  .msg-image {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 12px;
+  }
+  .msg-time {
+    font-size: 10px;
+    margin-top: 3px;
+  }
+  .chat-inputbar {
+    padding: 0 10px 12px;
+  }
+  .inputbar-inner {
+    padding: 3px 3px 3px 16px;
+    gap: 6px;
+  }
+  .img-btn {
+    width: 36px;
+    height: 36px;
+  }
+  .send-btn {
+    width: 38px;
+    height: 38px;
+  }
+  .chat-input :deep(.el-input__inner) {
+    font-size: 14px;
+  }
+}
 </style>
