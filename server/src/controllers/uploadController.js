@@ -20,17 +20,19 @@ const THUMB_WIDTH = 400;
 // 2) 同时生成 400px 宽 WebP 缩略图到 /uploads/thumbs
 // 3) 返回 { url, thumb, filename }，数据库仍只存字符串路径，数据结构不变
 exports.upload = async (req, res) => {
+  // multer 已落盘的原图（原格式）。无论成功失败都必须删掉它，
+  // 否则 sharp 处理失败时这个临时文件会永远留在磁盘上（孤儿文件）。
+  const originalPath = req.file && req.file.path;
+  const baseName = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+  const fullName = `${baseName}.webp`;
+  const thumbName = `${baseName}.webp`;
+  const fullPath = path.join(UPLOAD_DIR, fullName);
+  const thumbPath = path.join(THUMB_DIR, thumbName);
+
   try {
     if (!req.file) {
       return res.status(400).json(error('请选择要上传的文件'));
     }
-
-    const originalPath = req.file.path; // multer 已落盘的原图（原格式）
-    const baseName = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const fullName = `${baseName}.webp`;
-    const thumbName = `${baseName}.webp`;
-    const fullPath = path.join(UPLOAD_DIR, fullName);
-    const thumbPath = path.join(THUMB_DIR, thumbName);
 
     const image = sharp(originalPath);
 
@@ -50,14 +52,18 @@ exports.upload = async (req, res) => {
       .webp({ quality: 70 })
       .toFile(thumbPath);
 
-    // 删除 multer 保存的原格式文件（已是 webp，无需保留原格式）
-    fs.unlink(originalPath, () => {});
-
     const url = `/uploads/${fullName}`;
     const thumb = `/uploads/thumbs/${thumbName}`;
     res.json(success({ url, thumb, filename: fullName }, '上传成功'));
   } catch (err) {
     console.error('[上传] 图片处理失败:', err);
+    // 失败时清掉本次可能已写出的产物（例如全图转好了、缩略图那步失败），
+    // 它们不会被任何商品引用，留着只会变成孤儿文件。
+    fs.unlink(fullPath, () => {});
+    fs.unlink(thumbPath, () => {});
     res.status(500).json(error('上传失败'));
+  } finally {
+    // 原格式临时文件在成功与失败路径下都要删除
+    if (originalPath) fs.unlink(originalPath, () => {});
   }
 };

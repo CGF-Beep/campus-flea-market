@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { Favorite, Product, User } = require('../models');
 const { success, error, paginate } = require('../utils/response');
+const { parsePagination } = require('../utils/pagination');
 
 // 添加收藏
 exports.add = async (req, res) => {
@@ -36,8 +37,7 @@ exports.remove = async (req, res) => {
 // 我的收藏列表
 exports.myFavorites = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const pageSize = parseInt(req.query.pageSize) || 10;
+    const { page, pageSize } = parsePagination(req.query);
 
     const result = await Favorite.findAndCountAll({
       where: { userId: req.user.id },

@@ -70,6 +70,12 @@ const Product = sequelize.define('Product', {
     type: DataTypes.INTEGER.UNSIGNED,
     defaultValue: 0,
     comment: '浏览量'
+  },
+  priceNoticeAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'price_notice_at',
+    comment: '最近一次降价通知收藏者的时间（用于节流，避免反复改价刷屏）'
   }
 }, {
   tableName: 'products',

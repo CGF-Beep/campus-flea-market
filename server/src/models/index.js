@@ -5,6 +5,9 @@ const Product = require('./Product');
 const Order = require('./Order');
 const Message = require('./Message');
 const Favorite = require('./Favorite');
+const VisitSession = require('./VisitSession');
+const VisitEvent = require('./VisitEvent');
+const DeviceModelAlias = require('./DeviceModelAlias');
 
 // ========== 模型关联关系 ==========
 
@@ -44,6 +47,22 @@ Favorite.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Product.hasMany(Favorite, { foreignKey: 'product_id', as: 'favorites' });
 Favorite.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
+// ========== 访问分析（日志表，刻意与其他业务表保持低耦合）==========
+
+// 会话 - 事件（一对多）：删会话时连带删掉它的事件
+VisitSession.hasMany(VisitEvent, {
+  foreignKey: 'session_id',
+  as: 'events',
+  onDelete: 'CASCADE',
+  hooks: true
+});
+VisitEvent.belongsTo(VisitSession, { foreignKey: 'session_id', as: 'session' });
+
+// 用户 - 会话：只存 user_id 做「软关联」，不建数据库外键。
+// 理由：日志表不该因为用户表结构调整而被牵连，用户被删也不该影响历史统计。
+VisitSession.belongsTo(User, { foreignKey: 'user_id', as: 'user', constraints: false });
+User.hasMany(VisitSession, { foreignKey: 'user_id', as: 'visitSessions', constraints: false });
+
 module.exports = {
   sequelize,
   User,
@@ -51,5 +70,8 @@ module.exports = {
   Product,
   Order,
   Message,
-  Favorite
+  Favorite,
+  VisitSession,
+  VisitEvent,
+  DeviceModelAlias
 };

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const upload = require('../middleware/upload');
+const { verifyImageContent } = require('../utils/imageSignature');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
 // ===== 控制器引入 =====
@@ -13,6 +14,8 @@ const messageController = require('../controllers/messageController');
 const favoriteController = require('../controllers/favoriteController');
 const uploadController = require('../controllers/uploadController');
 const adminController = require('../controllers/adminController');
+const userController = require('../controllers/userController');
+const visitController = require('../controllers/visitController');
 
 // ========================
 // 认证相关路由
@@ -48,6 +51,13 @@ router.get('/categories', categoryController.list);
 router.post('/categories', authenticate, requireAdmin, categoryController.create);
 router.put('/categories/:id', authenticate, requireAdmin, categoryController.update);
 router.delete('/categories/:id', authenticate, requireAdmin, categoryController.remove);
+
+// ========================
+// 用户公开主页路由
+// ========================
+// 无需登录即可查看（买家逛市场时先建立信任，再决定是否下单）
+router.get('/users/:id', userController.publicProfile);
+router.get('/users/:id/products', userController.userProducts);
 
 // ========================
 // 商品路由
@@ -106,7 +116,9 @@ router.get('/messages/:userId', authenticate, messageController.chatHistory);
 // ========================
 // 文件上传路由
 // ========================
-router.post('/upload', authenticate, upload.single('file'), uploadController.upload);
+// verifyImageContent 必须夹在 multer 与 controller 之间：
+// multer 的扩展名/MIME 校验都来自客户端可伪造的字段，这里读文件头做真实判定
+router.post('/upload', authenticate, upload.single('file'), verifyImageContent, uploadController.upload);
 
 // ========================
 // 后台管理路由
@@ -117,5 +129,31 @@ router.put('/admin/users/:id/status', authenticate, requireAdmin, adminControlle
 router.get('/admin/products', authenticate, requireAdmin, adminController.productList);
 router.get('/admin/orders', authenticate, requireAdmin, adminController.orderList);
 router.put('/admin/orders/:id/cancel', authenticate, requireAdmin, orderController.adminCancel);
+
+// ========================
+// 访问分析路由
+// ========================
+// 前端埋点上报：用 text/plain 承载 JSON（避免 CORS 预检，见 visitController.report 注释）。
+// 这里刻意不加 authenticate —— 未登录访客的浏览也要统计。
+router.post(
+  '/visit/report',
+  express.text({ type: 'text/plain', limit: '4kb' }),
+  visitController.report
+);
+
+// 后台访问分析（仅管理员可见）
+router.get('/admin/visit/overview', authenticate, requireAdmin, visitController.overview);
+router.get('/admin/visit/sources', authenticate, requireAdmin, visitController.sources);
+router.get('/admin/visit/devices', authenticate, requireAdmin, visitController.devices);
+router.get('/admin/visit/pages', authenticate, requireAdmin, visitController.pages);
+router.get('/admin/visit/regions', authenticate, requireAdmin, visitController.regions);
+router.get('/admin/visit/realtime', authenticate, requireAdmin, visitController.realtime);
+router.get('/admin/visit/sessions', authenticate, requireAdmin, visitController.sessions);
+// 机型别名：查全部 / 新增或改名（alias 传空即取消命名）
+router.get('/admin/visit/aliases', authenticate, requireAdmin, visitController.aliases);
+router.put('/admin/visit/aliases', authenticate, requireAdmin, visitController.saveAlias);
+// 清理：先预览（只数不删）供前端二次确认，再执行
+router.get('/admin/visit/clean/preview', authenticate, requireAdmin, visitController.cleanPreview);
+router.delete('/admin/visit/clean', authenticate, requireAdmin, visitController.clean);
 
 module.exports = router;

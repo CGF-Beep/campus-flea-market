@@ -8,6 +8,9 @@ exports.list = async (req, res) => {
       where: { status: 1 },
       order: [['sort', 'ASC'], ['id', 'ASC']]
     });
+    // 分类极少变动：允许浏览器缓存 5 分钟、CDN 边缘缓存 10 分钟，
+    // 首屏那次跨境请求可以直接命中缓存
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=600, stale-while-revalidate=86400');
     res.json(success(categories));
   } catch (err) {
     res.status(500).json(error('获取分类失败'));
