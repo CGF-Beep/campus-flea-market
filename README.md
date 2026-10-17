@@ -59,24 +59,28 @@
 
 ## 系统截图
 
+> 同一功能在**桌面端与手机端**的实拍对比，体现全站响应式适配与移动端底部悬浮导航。
+
+### 用户端
+
 | | |
 |---|---|
-| ![首页](docs/screenshots/01-home.png) | ![逛市场](docs/screenshots/02-marketplace.png) |
+| ![首页](docs/screenshots/01-home.jpg) | ![逛市场](docs/screenshots/02-marketplace.jpg) |
 | **首页** | **逛市场** |
-| ![商品详情](docs/screenshots/03-product-detail.png) | ![发布闲置](docs/screenshots/04-publish.png) |
+| ![商品详情](docs/screenshots/03-product-detail.jpg) | ![发布闲置](docs/screenshots/04-publish.jpg) |
 | **商品详情** | **发布闲置** |
-| ![我的订单](docs/screenshots/05-orders.png) | ![我的收藏](docs/screenshots/06-favorites.png) |
-| **我的订单** | **我的收藏** |
-| ![个人中心](docs/screenshots/07-profile.png) | ![消息中心](docs/screenshots/12-messages.png) |
-| **个人中心** | **消息中心** |
+| ![我的商品](docs/screenshots/05-my-products.jpg) | ![我的订单](docs/screenshots/06-orders.jpg) |
+| **我的商品** | **我的订单** |
+| ![消息中心](docs/screenshots/07-messages.jpg) | ![个人中心](docs/screenshots/08-profile.jpg) |
+| **消息中心** | **个人中心** |
 
 ### 管理后台
 
 | | |
 |---|---|
-| ![数据看板](docs/screenshots/08-admin-dashboard.png) | ![用户管理](docs/screenshots/09-admin-users.png) |
+| ![数据看板](docs/screenshots/09-admin-dashboard.jpg) | ![用户管理](docs/screenshots/10-admin-users.jpg) |
 | **数据看板** | **用户管理** |
-| ![商品管理](docs/screenshots/10-admin-products.png) | ![订单管理](docs/screenshots/11-admin-orders.png) |
+| ![商品管理](docs/screenshots/11-admin-products.jpg) | ![订单管理](docs/screenshots/12-admin-orders.jpg) |
 | **商品管理** | **订单管理** |
 
 ---
