@@ -28,3 +28,8 @@ dist_old*/
 springboot-server/
 # 临时验证产物
 dist-verify/
+
+# 本地备份/运行时产物（不进仓库）
+client/_unused_backup/
+server/backup-image-paths-*.json
+server/src/uploads_tmp/
