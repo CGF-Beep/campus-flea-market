@@ -1,6 +1,6 @@
 # 乐购·校园闲置 — Campus Flea Market
 
-> 面向封闭校园的闲置物品交易平台，Vue 3 + Node.js + MySQL 全栈独立开发，已上线演示。
+> 面向校园的闲置物品交易平台，Vue 3 + Node.js + MySQL 全栈独立开发，已上线演示。
 
 ![Vue](https://img.shields.io/badge/Vue-3.4-42b883?logo=vue.js)
 ![Vite](https://img.shields.io/badge/Vite-5.3-646cff?logo=vite)
@@ -9,7 +9,7 @@
 ![License](https://img.shields.io/badge/License-MIT-blue)
 ![Status](https://img.shields.io/badge/在线演示-已上线-brightgreen)
 
-🌐 **在线体验**：<https://app.zeroly.me>
+🌐 **在线体验**：<https://zeroly.me>
 
 ---
 
@@ -233,7 +233,7 @@ Node.js (Express) + MySQL
 
 ## 在线演示
 
-- 前端：<https://app.zeroly.me>
+- 前端：<https://zeroly.me>
 - 测试账号：登录页直接注册即可（同校信任圈，学号需 12 位、手机号 11 位 1 开头）
 - 管理员账号可在数据库 `users` 表中自行将 `role` 字段改为 `admin` 后登录 `/admin`
 
