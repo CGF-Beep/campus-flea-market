@@ -78,8 +78,8 @@
 
 | | |
 |---|---|
-| ![数据看板](docs/screenshots/09-admin-dashboard.jpg) | ![用户管理](docs/screenshots/10-admin-users.jpg) |
-| **数据看板** | **用户管理** |
+| ![数据看板](docs/screenshots/09-admin-dashboard.jpg) | ![分类管理](docs/screenshots/10-admin-categories.jpg) |
+| **数据看板** | **分类管理** |
 | ![商品管理](docs/screenshots/11-admin-products.jpg) | ![订单管理](docs/screenshots/12-admin-orders.jpg) |
 | **商品管理** | **订单管理** |
 
