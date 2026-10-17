@@ -1,20 +1,15 @@
-// 应用入口：Vue实例创建、Pinia/ElementPlus/全局样式注册
+// 应用入口：Vue实例创建、Pinia/全局样式注册
+// Element Plus 改为按需引入（见 vite.config.js 的 AutoImport + Components），
+// 这里不再全量注册组件/图标，也不再引入 element-plus/dist/index.css
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
 import { useUserStore } from './stores/user'
+import { initAnalytics } from './utils/analytics'
 import './styles/global.css'
 
 const app = createApp(App)
-
-// 注册所有Element Plus图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component)
-}
 
 const pinia = createPinia()
 app.use(pinia)
@@ -23,7 +18,10 @@ app.use(pinia)
 const userStore = useUserStore(pinia)
 userStore.init()
 
+// 访问埋点：必须在 app.use(router) 之前注册钩子 ——
+// router 的首次导航是在 install 时触发的，注册晚了会漏掉首屏那一次浏览
+initAnalytics(router)
+
 app.use(router)
-app.use(ElementPlus)
 
 app.mount('#app')

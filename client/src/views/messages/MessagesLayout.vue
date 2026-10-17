@@ -8,8 +8,9 @@
 
       <!-- 右侧聊天详情（移动端列表时隐藏） -->
       <main class="messages-main">
-        <transition name="chat-switch" mode="out-in">
-          <router-view :key="$route.params.userId" />
+        <!-- 与全站页面切换共用同一套动画（fade-slide：淡入 + 14px 横移） -->
+        <transition name="fade-slide" mode="out-in">
+          <router-view :key="$route.params.userId || 'list'" />
         </transition>
       </main>
     </div>
@@ -66,16 +67,8 @@ const isChat = computed(() => /^\/messages\/.+/.test(route.path))
   position: relative;
 }
 
-/* 切换会话淡入淡出，避免闪白 */
-.chat-switch-enter-active,
-.chat-switch-leave-active {
-  transition: opacity 0.22s ease;
-}
-
-.chat-switch-enter-from,
-.chat-switch-leave-to {
-  opacity: 0;
-}
+/* 切换会话动画改用全站通用的 fade-slide（见 styles/global.css），
+   原先的 .chat-switch 纯透明度过渡已废弃 */
 
 /* 右侧空态 */
 :deep(.chat-empty-state) {
@@ -102,16 +95,23 @@ const isChat = computed(() => /^\/messages\/.+/.test(route.path))
    ================================================================ */
 @media (max-width: 768px) {
   .messages-layout {
-    /* App-Shell 内填满可视容器（外层 main 已内部滚动，这里不再撑高外滚） */
-    min-height: 100%;
-    padding: 8px;
+    /* 必须是确定高度：只有 min-height 时百分比高度链会断，
+       子级会退化成"内容高度"，导致底部留白 */
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    background: var(--color-bg-secondary);
   }
 
   .messages-card {
     flex-direction: column;
     height: 100%;
     min-height: 0;
-    border-radius: var(--radius-lg);
+    /* 移动端去掉外层白卡片，跟页面背景融合 */
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
   }
 
   /* 列表态：隐藏右侧空聊天区 */
@@ -127,10 +127,12 @@ const isChat = computed(() => /^\/messages\/.+/.test(route.path))
   .messages-sidebar {
     flex: 1 1 100%;
     border-right: none;
+    background: transparent;
   }
 
   .messages-main {
     flex: 1 1 100%;
+    background: var(--color-bg-secondary);
   }
 }
 </style>

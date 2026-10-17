@@ -5,7 +5,16 @@
         <h1 class="page-title">我的收藏</h1>
       </div>
 
-      <div class="products-grid" v-loading="loading">
+      <!-- 首次加载骨架屏（与逛市场商品卡片同尺寸） -->
+      <div v-if="loading && favorites.length === 0" class="skeleton-grid">
+        <div v-for="n in 4" :key="'sk' + n" class="skeleton-card">
+          <div class="skeleton-img"></div>
+          <div class="skeleton-line lg"></div>
+          <div class="skeleton-line sm"></div>
+        </div>
+      </div>
+
+      <div class="products-grid">
         <div
           v-for="f in favorites"
           :key="f.id"
@@ -28,7 +37,9 @@
         </div>
       </div>
 
-      <el-empty v-if="!loading && favorites.length === 0" description="暂无收藏" :image-size="120" />
+      <el-empty v-if="!loading && favorites.length === 0" description="还没有收藏任何好物" :image-size="120">
+        <button class="btn-primary" @click="$router.push('/products')">去逛逛市场</button>
+      </el-empty>
 
       <div class="pagination" v-if="total > 12">
         <el-pagination
@@ -46,7 +57,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getMyFavorites, removeFavorite } from '@/api'
-import { ElMessage } from 'element-plus'
 import SmartImage from '@/components/SmartImage.vue'
 
 const loading = ref(false)
@@ -114,7 +124,8 @@ onMounted(() => loadData())
 
 .product-image {
   position: relative;
-  height: 180px;
+  /* 与市场/首页卡片一致：桌面 200px 高 */
+  height: 200px;
   background: var(--color-bg-secondary);
   overflow: hidden;
 }
@@ -200,7 +211,8 @@ onMounted(() => loadData())
 
   .product-image {
     height: auto;
-    aspect-ratio: 1 / 1;
+    /* 与市场页卡片一致：4:3（原来是 1:1 正方形） */
+    aspect-ratio: 4 / 3;
   }
 
   .product-condition {

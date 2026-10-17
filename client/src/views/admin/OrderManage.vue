@@ -7,9 +7,27 @@
     </div>
 
     <div class="admin-card">
-      <!-- 筛选 -->
-      <div class="filter-bar">
-        <el-select v-model="status" placeholder="全部状态" clearable @change="loadData" class="select-rounded">
+      <!-- 筛选：左边一体化搜索框，右边状态筛选 -->
+      <div class="admin-filter-bar">
+        <div class="admin-filter-search">
+          <el-input
+            v-model="keyword"
+            placeholder="搜索订单号/商品/买家"
+            clearable
+            @keyup.enter="search"
+            @clear="search"
+          >
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+          <button class="admin-search-btn" @click="search">搜索</button>
+        </div>
+        <el-select
+          v-model="status"
+          placeholder="全部状态"
+          clearable
+          @change="search"
+          class="admin-filter-select"
+        >
           <el-option label="待卖家确认" value="pending" />
           <el-option label="已确认" value="confirmed" />
           <el-option label="已完成" value="completed" />
@@ -103,7 +121,11 @@
             </div>
           </div>
         </div>
-        <el-empty v-if="!loading && orders.length === 0" description="暂无订单" :image-size="100" />
+        <el-empty
+          v-if="!loading && orders.length === 0"
+          :description="status ? '该状态下暂无订单' : '暂无订单'"
+          :image-size="100"
+        />
       </div>
 
       <div class="pagination">
@@ -124,7 +146,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getAdminOrders, adminCancelOrder } from '@/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import SmartImage from '@/components/SmartImage.vue'
 
 const route = useRoute()
@@ -133,14 +155,27 @@ const orders = ref([])
 const page = ref(1)
 const total = ref(0)
 const status = ref('')
+const keyword = ref('')
 
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getAdminOrders({ page: page.value, pageSize: 15, status: status.value })
+    const res = await getAdminOrders({
+      page: page.value,
+      pageSize: 15,
+      status: status.value,
+      keyword: keyword.value.trim()
+    })
     orders.value = res.data.list
     total.value = res.data.total
   } catch (e) {} finally { loading.value = false }
+}
+
+// 改条件（关键词/状态）后必须回到第 1 页，
+// 否则停在第 3 页搜索会落到空结果上
+const search = () => {
+  page.value = 1
+  loadData()
 }
 
 const statusText = (s) => ({ pending: '待卖家确认', confirmed: '已确认', completed: '已完成', cancelled: '已取消' })[s] || s
@@ -173,15 +208,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.filter-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.select-rounded {
-  width: 140px;
-}
+/* 筛选栏样式统一在 global.css 的 .admin-filter-bar 里 */
 
 .order-no {
   font-size: 12px;
@@ -245,16 +272,6 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .select-rounded {
-    width: 100%;
-  }
-
   .table-wrap {
     display: none;
   }

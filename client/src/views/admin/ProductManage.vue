@@ -7,27 +7,32 @@
     </div>
 
     <div class="admin-card">
-      <!-- 筛选栏 -->
-      <div class="filter-bar">
-        <div class="filter-item">
+      <!-- 筛选：左边一体化搜索框，右边状态筛选 -->
+      <div class="admin-filter-bar">
+        <div class="admin-filter-search">
           <el-input
             v-model="keyword"
             placeholder="搜索商品标题"
             clearable
-            class="input-rounded"
             @keyup.enter="loadData"
           >
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
+          <button class="admin-search-btn" @click="loadData">搜索</button>
         </div>
-        <el-select v-model="status" placeholder="全部状态" clearable @change="loadData" class="input-rounded select-rounded">
+        <el-select
+          v-model="status"
+          placeholder="全部状态"
+          clearable
+          @change="loadData"
+          class="admin-filter-select"
+        >
           <el-option label="待审核" value="pending" />
           <el-option label="在售" value="on_sale" />
           <el-option label="已售" value="sold" />
           <el-option label="已拒绝" value="rejected" />
           <el-option label="已下架" value="removed" />
         </el-select>
-        <button class="btn-primary btn-sm" @click="loadData">搜索</button>
       </div>
 
       <!-- 表格：弹性撑满卡片剩余高度，行多时内部滚动 -->
@@ -85,7 +90,11 @@
               :alt="row.title"
             />
             <div class="m-info">
-              <div class="m-title">{{ row.title }}</div>
+              <!-- 状态提到标题右侧：底部那一行只留「发布者 + 操作」，不再三样挤在一起 -->
+              <div class="m-title-row">
+                <div class="m-title">{{ row.title }}</div>
+                <span class="status-pill" :class="statusClass(row.status)">{{ statusText(row.status) }}</span>
+              </div>
               <div class="m-sub">{{ row.category?.name || '—' }}</div>
               <div class="m-price">￥{{ row.price }}</div>
             </div>
@@ -94,7 +103,6 @@
             <div class="m-meta">
               <span class="m-label">发布者</span>
               <span class="m-value">{{ row.user?.nickname || '—' }}</span>
-              <span class="status-pill" :class="statusClass(row.status)">{{ statusText(row.status) }}</span>
             </div>
             <div class="m-actions">
               <button class="btn-text btn-success" v-if="row.status === 'pending'" @click="handleApprove(row)">通过</button>
@@ -104,7 +112,11 @@
             </div>
           </div>
         </div>
-        <el-empty v-if="!loading && products.length === 0" description="暂无商品" :image-size="100" />
+        <el-empty
+          v-if="!loading && products.length === 0"
+          :description="keyword ? '没有匹配的商品' : (status ? '该状态下暂无商品' : '暂无商品')"
+          :image-size="100"
+        />
       </div>
 
       <div class="pagination">
@@ -139,7 +151,6 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getAdminProducts, approveProduct, rejectProduct, removeProduct, deleteProduct } from '@/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import SmartImage from '@/components/SmartImage.vue'
 
@@ -221,20 +232,7 @@ onMounted(() => loadData())
 </script>
 
 <style scoped>
-.filter-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.filter-item {
-  width: 220px;
-}
-
-.select-rounded {
-  width: 140px;
-}
+/* 筛选栏样式统一在 global.css 的 .admin-filter-bar 里 */
 
 .btn-sm {
   padding: 10px 24px;
@@ -299,17 +297,6 @@ onMounted(() => loadData())
 }
 
 @media (max-width: 768px) {
-  .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .filter-item,
-  .select-rounded {
-    width: 100%;
-  }
-
   .table-wrap {
     display: none;
   }
@@ -321,9 +308,10 @@ onMounted(() => loadData())
   }
 
   .m-card {
+    background: var(--admin-card);
     border-radius: 16px;
     border: 1px solid var(--admin-border);
-    padding: 12px;
+    padding: 14px;
   }
 
   .m-head {
@@ -333,9 +321,9 @@ onMounted(() => loadData())
   }
 
   .m-img {
-    width: 64px;
-    height: 64px;
-    border-radius: var(--radius-sm);
+    width: 72px;
+    height: 72px;
+    border-radius: 12px;
     overflow: hidden;
     flex-shrink: 0;
   }
@@ -345,8 +333,17 @@ onMounted(() => loadData())
     min-width: 0;
   }
 
+  /* 标题 + 状态同行：标题最多两行，状态永远顶在右上角 */
+  .m-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
   .m-title {
-    font-size: 14px;
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
     font-weight: 600;
     color: var(--admin-text);
     line-height: 1.4;
@@ -357,28 +354,35 @@ onMounted(() => loadData())
     overflow: hidden;
   }
 
+  .m-title-row .status-pill {
+    flex: none;
+    margin-top: 1px;
+  }
+
   .m-sub {
     font-size: 12px;
     color: var(--admin-text-tertiary);
-    margin-top: 3px;
-  }
-
-  .m-price {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--admin-price, #e74c3c);
     margin-top: 4px;
   }
 
+  .m-price {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--admin-price, #e74c3c);
+    margin-top: 5px;
+  }
+
+  /* 底部一行：左边「发布者 xxx」，右边操作按钮。
+     ⚠️ 左边要 min-width:0 + 省略号，否则长昵称会把按钮挤下去；
+     两侧内部都不许换行（早先的竖排错位就是被压缩导致的） */
   .m-foot {
-    margin-top: 10px;
-    padding-top: 10px;
+    margin-top: 12px;
+    padding-top: 12px;
     border-top: 1px solid var(--admin-border);
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
   }
 
   .m-meta {
@@ -391,10 +395,23 @@ onMounted(() => loadData())
     min-width: 0;
   }
 
+  .m-meta .m-label {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .m-meta .m-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .m-actions {
+    flex: none;
     display: flex;
+    align-items: center;
     gap: 4px;
-    flex-wrap: wrap;
   }
 
   .page-title {

@@ -1,12 +1,25 @@
 <template>
-  <div class="conversation-list" v-loading="loading">
+  <div class="conversation-list">
     <div class="conv-list-header">
       <h3>消息</h3>
     </div>
     <div class="conv-list-body" ref="convListRef">
       <div class="conv-slider" :style="convSliderStyle"></div>
+
+      <!-- 加载骨架：6 行，与真实会话等结构对齐，圆头像 + 两段文字 -->
+      <div v-if="loading && conversations.length === 0" class="skeleton-conv-list">
+        <div v-for="i in 6" :key="'csk' + i" class="skeleton-conv-item">
+          <div class="skeleton-conv-avatar"></div>
+          <div class="skeleton-conv-lines">
+            <div class="skeleton-line lg"></div>
+            <div class="skeleton-line sm"></div>
+          </div>
+        </div>
+      </div>
+
       <div
         v-for="(conv, i) in conversations"
+        v-else
         :key="conv.userId"
         data-tab-item
         class="conv-item"
@@ -47,7 +60,7 @@ import { useTabSlider } from '@/composables/useTabSlider.js'
 
 const route = useRoute()
 const router = useRouter()
-const loading = ref(false)
+const loading = ref(true)
 const conversations = ref([])
 
 // 会话列表选中滑块
@@ -253,5 +266,47 @@ onMounted(() => loadData())
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+/* ================================================================
+   移动端：去掉卡片，跟页面背景融为一体，用细分割线分组
+   ================================================================ */
+@media (max-width: 768px) {
+  .conversation-list {
+    background: transparent;
+  }
+
+  .conv-list-header {
+    padding: 16px 16px 10px;
+  }
+
+  .conv-list-header h3 {
+    font-size: 20px;
+  }
+
+  .conv-list-body {
+    padding: 4px 0;
+  }
+
+  .conv-item {
+    border-radius: 0;
+    padding: 12px 16px;
+    margin-bottom: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-top: 1px solid transparent;
+  }
+
+  .conv-item:last-child {
+    border-bottom: none;
+  }
+
+  .conv-item:active {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  /* 移动端不再使用选中滑块动画 */
+  .conv-slider {
+    display: none;
+  }
 }
 </style>

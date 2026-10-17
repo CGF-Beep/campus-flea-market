@@ -3,58 +3,50 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <h1 class="page-title">数据看板</h1>
-      <p class="page-subtitle">校园闲置二手平台运营概览 ( 增速对比数据为环比总数 )</p>
+      <p class="page-subtitle">注册、商品、订单与成交额</p>
     </div>
 
     <!-- 顶部统计卡片 -->
     <div class="stats-grid">
       <div class="stat-card" v-for="(stat, index) in stats" :key="index">
         <div class="stat-icon" :style="{ background: stat.gradient }">
-          <el-icon :size="22"><component :is="stat.icon" /></el-icon>
+          <el-icon :size="20"><component :is="stat.icon" /></el-icon>
         </div>
         <div class="stat-info">
-          <span class="stat-value">{{ stat.value }}</span>
+          <!-- 趋势徽章跟数字贴在同一行，比单独怼在卡片右端更好读 -->
+          <div class="stat-value-row">
+            <span class="stat-value">{{ stat.value }}</span>
+            <span
+              v-if="stat.trend"
+              class="stat-trend"
+              :class="stat.trend > 0 ? 'trend-up' : 'trend-down'"
+              :title="stat.trendTitle + (stat.trend > 0 ? '增长' : '下降') + Math.abs(Math.round(stat.trend * 10) / 10) + '%'"
+            >{{ stat.trend > 0 ? '+' : '' }}{{ Math.round(stat.trend * 10) / 10 }}%</span>
+          </div>
           <span class="stat-label">{{ stat.label }}</span>
-        </div>
-        <div class="stat-trend" v-if="stat.trend" :title="stat.trendTitle + (stat.trend > 0 ? '增长' : '下降') + Math.abs(Math.round(stat.trend * 10) / 10) + '%'">
-          <span :class="stat.trend > 0 ? 'trend-up' : 'trend-down'">
-            {{ stat.trend > 0 ? '+' : '' }}{{ Math.round(stat.trend * 10) / 10 }}%
-          </span>
         </div>
       </div>
     </div>
 
-    <!-- 中间快捷指标 -->
+    <!-- 关键状态一览：4 个可整块点击的紧凑指标，比原来的 2 个大卡信息密度高一倍 -->
     <div class="quick-grid">
-      <div class="quick-card warning">
-        <div class="quick-body">
-          <div class="quick-icon">
-            <el-icon :size="26"><Clock /></el-icon>
-          </div>
-          <div class="quick-info">
-            <span class="quick-value">{{ data.pendingProducts || 0 }}</span>
-            <span class="quick-label">待审核商品</span>
-          </div>
-        </div>
-        <button class="quick-action" @click="$router.push('/admin/products?status=pending')">
-          去审核 <el-icon :size="14"><ArrowRight /></el-icon>
-        </button>
-      </div>
-
-      <div class="quick-card info">
-        <div class="quick-body">
-          <div class="quick-icon">
-            <el-icon :size="26"><DocumentChecked /></el-icon>
-          </div>
-          <div class="quick-info">
-            <span class="quick-value">{{ data.pendingOrders || 0 }}</span>
-            <span class="quick-label">待确认交易</span>
-          </div>
-        </div>
-        <button class="quick-action" @click="$router.push('/admin/orders?status=pending')">
-          去查看 <el-icon :size="14"><ArrowRight /></el-icon>
-        </button>
-      </div>
+      <button
+        v-for="q in quickStats"
+        :key="q.label"
+        type="button"
+        class="quick-card"
+        :class="{ 'is-alert': q.alert }"
+        @click="$router.push(q.path)"
+      >
+        <span class="quick-icon" :style="{ background: q.bg, color: q.color }">
+          <el-icon :size="18"><component :is="q.icon" /></el-icon>
+        </span>
+        <span class="quick-info">
+          <span class="quick-value">{{ q.value }}</span>
+          <span class="quick-label">{{ q.label }}</span>
+        </span>
+        <el-icon class="quick-arrow" :size="14"><ArrowRight /></el-icon>
+      </button>
     </div>
 
     <!-- 图表与分析区 -->
@@ -148,6 +140,7 @@ import {
   Money,
   Clock,
   DocumentChecked,
+  CircleCheck,
   ArrowRight
 } from '@element-plus/icons-vue'
 const data = ref({})
@@ -193,6 +186,49 @@ const palette = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6
 const totalCategoryCount = computed(() => {
   return (data.value.categoryStats || []).reduce((sum, c) => sum + c.count, 0)
 })
+
+// 关键状态一览：4 个可整块点击的指标。
+// 「在售商品」= categoryStats 求和（后端就是按 status='on_sale' 聚合的），
+// 「已完成订单」用后端已返回但原先没用上的 completedOrders。
+// 待办类指标 > 0 时描边高亮，提示需要处理。
+const quickStats = computed(() => [
+  {
+    icon: Clock,
+    label: '待审核商品',
+    value: data.value.pendingProducts || 0,
+    bg: 'rgba(79, 70, 229, 0.1)',
+    color: '#4f46e5',
+    path: '/admin/products?status=pending',
+    alert: Number(data.value.pendingProducts || 0) > 0
+  },
+  {
+    icon: DocumentChecked,
+    label: '待确认交易',
+    value: data.value.pendingOrders || 0,
+    bg: 'rgba(14, 165, 233, 0.12)',
+    color: '#0ea5e9',
+    path: '/admin/orders?status=pending',
+    alert: Number(data.value.pendingOrders || 0) > 0
+  },
+  {
+    icon: Goods,
+    label: '在售商品',
+    value: totalCategoryCount.value,
+    bg: 'rgba(16, 185, 129, 0.12)',
+    color: '#10b981',
+    path: '/admin/products?status=on_sale',
+    alert: false
+  },
+  {
+    icon: CircleCheck,
+    label: '已完成订单',
+    value: data.value.completedOrders || 0,
+    bg: 'rgba(245, 158, 11, 0.14)',
+    color: '#d97706',
+    path: '/admin/orders?status=completed',
+    alert: false
+  }
+])
 
 // 环形图：conic-gradient 按百分比精确着色（0 值分类不占色块，颜色与图例保持对应）
 const donutBackground = computed(() => {
@@ -240,10 +276,28 @@ const trendPoints = computed(() => {
 const trendPath = computed(() => {
   const points = trendPoints.value
   if (points.length < 2) return null
-  const line = points.reduce((path, p, i) => {
-    return path + (i === 0 ? `M ${p.x} ${p.y}` : ` L ${p.x} ${p.y}`)
-  }, '')
-  const area = `${line} L ${points[points.length - 1].x} 120 L ${points[0].x} 120 Z`
+
+  // Cardinal/Catmull-Rom 风格 cubic bezier 平滑曲线，
+  // tension 越小越平缓，过大容易过头；0.18 是经验舒适值
+  const tension = 0.18
+  const round = (n) => Math.round(n * 100) / 100
+
+  let line = `M ${round(points[0].x)} ${round(points[0].y)}`
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] || points[i]
+    const p1 = points[i]
+    const p2 = points[i + 1]
+    const p3 = points[i + 2] || points[i + 1]
+    const cp1x = p1.x + (p2.x - p0.x) * tension
+    const cp1y = p1.y + (p2.y - p0.y) * tension
+    const cp2x = p2.x - (p3.x - p1.x) * tension
+    const cp2y = p2.y - (p3.y - p1.y) * tension
+    line += ` C ${round(cp1x)} ${round(cp1y)}, ${round(cp2x)} ${round(cp2y)}, ${round(p2.x)} ${round(p2.y)}`
+  }
+
+  const last = points[points.length - 1]
+  const first = points[0]
+  const area = `${line} L ${last.x} 120 L ${first.x} 120 Z`
   return { line, area }
 })
 
@@ -304,21 +358,34 @@ onMounted(async () => {
   min-width: 0;
 }
 
+/* 数值 + 趋势徽章同行 */
+.stat-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
 .stat-value {
   font-size: 24px;
   font-weight: 800;
   color: var(--admin-text);
   letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .stat-label {
   font-size: 13px;
   color: var(--admin-text-secondary);
-  margin-top: 2px;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stat-trend {
-  font-size: 12px;
+  flex: none;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -336,88 +403,76 @@ onMounted(async () => {
   border-radius: 8px;
 }
 
-/* 快捷指标 */
+/* 关键状态一览：4 个紧凑指标卡（整块可点，箭头提示可进入） */
 .quick-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
   margin-bottom: 20px;
 }
 
 .quick-card {
-  background: var(--admin-card);
-  border-radius: var(--admin-radius);
-  padding: 24px;
-  box-shadow: var(--admin-shadow);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  transition: all 0.35s ease;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--admin-card);
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  box-shadow: var(--admin-shadow);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
 }
 
 .quick-card:hover {
   box-shadow: var(--admin-shadow-hover);
-  transform: translateY(-3px);
+  transform: translateY(-2px);
 }
 
-.quick-body {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+/* 有待办时描边高亮，扫一眼就知道要不要处理 */
+.quick-card.is-alert {
+  border-color: rgba(79, 70, 229, 0.35);
 }
 
 .quick-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-}
-
-.quick-card.warning .quick-icon {
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
-}
-
-.quick-card.info .quick-icon {
-  background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+  flex-shrink: 0;
 }
 
 .quick-info {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
 .quick-value {
-  font-size: 32px;
+  font-size: 22px;
   font-weight: 800;
+  line-height: 1.15;
   color: var(--admin-text);
+  letter-spacing: -0.02em;
 }
 
 .quick-label {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--admin-text-secondary);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.quick-action {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  background: var(--admin-primary-light);
-  color: var(--admin-primary);
-  padding: 10px 18px;
-  border-radius: 980px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.quick-action:hover {
-  background: var(--admin-primary);
-  color: #fff;
+.quick-arrow {
+  color: var(--admin-text-tertiary);
+  flex-shrink: 0;
 }
 
 /* 图表区 */
@@ -568,9 +623,79 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
+  /* 移动端不再一列一个大卡：统计卡与状态卡都走 2 列。
+     以前是单列，一屏只能看到 4 个数字，得滚半天才见到别的信息 */
   .stats-grid,
   .quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .stat-card {
+    align-items: center;
+    gap: 10px;
+    padding: 13px;
+    border-radius: 16px;
+  }
+
+  .stat-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+  }
+
+  .stat-value {
+    font-size: 19px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    margin-top: 2px;
+  }
+
+  .stat-trend {
+    font-size: 10px;
+  }
+
+  .quick-card {
+    padding: 12px 14px;
+    gap: 10px;
+    border-radius: 14px;
+  }
+
+  .quick-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
+  .quick-value {
+    font-size: 18px;
+  }
+
+  /* 手机上省掉箭头，给数字和标签让位 */
+  .quick-arrow {
+    display: none;
+  }
+
+  /* 图表区单列，并把留白收紧 */
+  .analysis-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .card-header {
+    margin-bottom: 14px;
+  }
+
+  .donut-ring {
+    width: 140px;
+    height: 140px;
+  }
+
+  .donut-hole {
+    inset: 26px;
   }
 }
 </style>

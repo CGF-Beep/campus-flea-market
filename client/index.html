@@ -3,12 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" href="/favicon.png" />
-  <!-- 移动端视口：宽度跟随设备 + 适配 iPhone 刘海屏安全区 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
-  <!-- PWA/主屏添加基础 -->
+  <!-- 预连接 API 子域：提前完成 DNS 解析 + TCP/TLS 握手，省掉跨境往返（约 300~600ms） -->
+  <link rel="preconnect" href="https://api.zeroly.me" crossorigin />
+  <link rel="dns-prefetch" href="https://api.zeroly.me" />
+  <!-- 移动端视口：宽度跟随设备 + 适配 iPhone 刘海屏安全区；
+       interactive-widget=resizes-content 让 Android 键盘弹起时"压缩"布局视口，
+       而不是覆盖内容（否则 fixed 底部输入框会被键盘挡住） -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <!-- PWA/主屏添加：manifest 提供「添加到主屏幕」所需的应用信息
+       （图标复用已有的 pwa-192/512/maskable-512，display:standalone 让打开后无浏览器外壳） -->
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/pwa-192x192.png" />
   <meta name="theme-color" content="#0071e3" />
   <meta name="format-detection" content="telephone=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <!-- 新版标准写法：消除 Chrome 关于 apple-mobile-web-app-capable 已弃用的警告 -->
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="乐购校园闲置" />
   <title>校园二手交易平台</title>

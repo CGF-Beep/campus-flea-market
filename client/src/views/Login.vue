@@ -58,7 +58,6 @@
 import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { ElMessage } from 'element-plus'
 import { User, Lock, Collection } from '@element-plus/icons-vue'
 import logoImg from '@/assets/logo.png'
 import { notifyUnexpected } from '@/utils/notify'

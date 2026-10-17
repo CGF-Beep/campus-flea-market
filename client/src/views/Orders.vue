@@ -24,9 +24,21 @@
         >我卖出的</div>
       </div>
 
-      <!-- 订单卡片列表 -->
-      <div class="order-list" v-loading="loading">
-        <div v-for="(o, i) in orders" :key="o.id" class="order-card animate-in" :style="{ animationDelay: `${i * 60}ms` }">
+      <!-- 首次加载骨架屏（订单卡形状：缩略图 + 文字条） -->
+      <div v-if="loading && orders.length === 0" class="skeleton-orders">
+        <div v-for="n in 3" :key="'sk' + n" class="skeleton-order">
+          <div class="skeleton-thumb"></div>
+          <div class="skeleton-order-lines">
+            <div class="skeleton-line lg"></div>
+            <div class="skeleton-line md"></div>
+            <div class="skeleton-line sm"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 订单卡片列表（首次用骨架，后续无遮罩，直接数据切换） -->
+      <div class="order-list">
+        <div v-for="o in orders" :key="o.id" class="order-card">
           <div class="order-main" @click="$router.push(`/products/${o.productId}`)">
             <SmartImage
               class="order-img"
@@ -92,7 +104,6 @@
           :page-size="10"
           layout="prev, pager, next"
           @current-change="loadData"
-          background
         />
       </div>
     </div>
@@ -102,7 +113,6 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
 import { getMyOrders, confirmOrder, receiveOrder, cancelOrder, deleteOrder } from '@/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import { User, Clock } from '@element-plus/icons-vue'
 import SmartImage from '@/components/SmartImage.vue'
 import { useTabSlider } from '@/composables/useTabSlider.js'
@@ -147,8 +157,15 @@ const formatDate = (d) => new Date(d).toLocaleString('zh-CN', { month: '2-digit'
 const handleSellerConfirm = async (row) => {
   try {
     await ElMessageBox.confirm('确认后请与买家约定时间地点当面交易', '确认订单', { confirmButtonText: '确认', cancelButtonText: '取消' })
-    await confirmOrder(row.id)
-    ElMessage.success('已确认，等待买家当面确认收货')
+    const res = await confirmOrder(row.id)
+    // 后端会返回该商品上还有几个待处理订单：一货多单时提醒卖家，
+    // 避免他答应了 A、又和别人交易，导致其他买家订单变成僵尸单
+    const competing = res?.data?.competingCount || 0
+    if (competing > 0) {
+      ElMessage.warning(`已确认。该商品还有 ${competing} 个待处理订单，完成后系统会自动取消并通知对方`)
+    } else {
+      ElMessage.success('已确认，等待买家当面确认收货')
+    }
     loadData()
   } catch (e) {}
 }
@@ -157,8 +174,14 @@ const handleSellerConfirm = async (row) => {
 const handleBuyerReceive = async (row) => {
   try {
     await ElMessageBox.confirm('确认已收到商品且无问题？交易将完成。', '确认收货', { confirmButtonText: '确认', cancelButtonText: '取消' })
-    await receiveOrder(row.id)
-    ElMessage.success('已确认收货，交易完成')
+    const res = await receiveOrder(row.id)
+    // 成交后后端会自动取消同商品其他订单，这里把结果告诉买家，避免他困惑"别的订单怎么没了"
+    const cancelled = res?.data?.cancelledOthers || 0
+    if (cancelled > 0) {
+      ElMessage.success(`已确认收货，交易完成（同商品另外 ${cancelled} 个订单已自动取消并通知对方）`)
+    } else {
+      ElMessage.success('已确认收货，交易完成')
+    }
     loadData()
   } catch (e) {}
 }
@@ -360,6 +383,8 @@ onMounted(() => {
   justify-content: center;
 }
 
+/* 分页样式已统一放到 styles/global.css（全站生效），此处只需容器布局 */
+
 /* ================================================================
    移动端响应式（≤768px）
    ================================================================ */
@@ -387,19 +412,21 @@ onMounted(() => {
   }
 
   .order-main {
-    padding: 14px;
-    gap: 12px;
+    padding: 12px;
+    gap: 10px;
     align-items: flex-start;
+    /* 允许右侧价格+状态换到第二行 */
+    flex-wrap: wrap;
   }
 
   .order-img {
-    width: 76px;
-    height: 76px;
+    width: 64px;
+    height: 64px;
     border-radius: var(--radius-sm);
   }
 
   .order-info {
-    flex: 1 1 calc(100% - 100px);
+    flex: 1 1 calc(100% - 74px);
     min-width: 0;
   }
 
@@ -407,19 +434,43 @@ onMounted(() => {
     font-size: 15px;
   }
 
+  /* meta 改为纵向堆叠 + nowrap，避免中文按字竖排 */
   .order-meta {
-    flex-wrap: wrap;
-    gap: 6px 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
     margin-top: 6px;
   }
 
   .meta-item {
     font-size: 12px;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .order-no {
     font-size: 11px;
     margin-top: 4px;
+    /* 中文保持成词不被打散；订单号整体太长就 ellipsis 截断 */
+    word-break: keep-all;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* 价格 + 状态：换到第二行，占满宽度左右分布 */
+  .order-right {
+    flex: 1 1 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 8px;
+    margin-top: 4px;
+    border-top: 1px dashed rgba(0, 0, 0, 0.06);
   }
 
   /* 右侧价格 + 状态改为横排贴在顶部，缩小字号 */

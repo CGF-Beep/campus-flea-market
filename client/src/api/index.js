@@ -50,6 +50,10 @@ export const removeProduct = (id) => request.delete(`/products/${id}`)
 export const deleteProduct = (id) => request.delete(`/products/${id}/permanent`)
 export const getMyProducts = (params) => request.get('/my/products', { params })
 
+// ===== 用户公开主页（卖家主页）=====
+export const getUserProfile = (id) => request.get(`/users/${id}`)
+export const getUserProducts = (id, params) => request.get(`/users/${id}/products`, { params })
+
 // ===== 分类 =====
 export const getCategories = () => request.get('/categories')
 export const createCategory = (data) => request.post('/categories', data)
@@ -90,3 +94,19 @@ export const getAdminOrders = (params) => request.get('/admin/orders', { params 
 export const approveProduct = (id) => request.put(`/admin/products/${id}/approve`)
 export const rejectProduct = (id, reason) => request.put(`/admin/products/${id}/reject`, { reason })
 export const adminCancelOrder = (id) => request.put(`/admin/orders/${id}/cancel`)
+
+// ===== 后台访问分析 =====
+export const getVisitOverview = (params) => request.get('/admin/visit/overview', { params })
+export const getVisitSources = (params) => request.get('/admin/visit/sources', { params })
+export const getVisitDevices = (params) => request.get('/admin/visit/devices', { params })
+export const getVisitPages = (params) => request.get('/admin/visit/pages', { params })
+export const getVisitRegions = (params) => request.get('/admin/visit/regions', { params })
+export const getVisitRealtime = () => request.get('/admin/visit/realtime')
+export const getVisitSessions = (params) => request.get('/admin/visit/sessions', { params })
+// 机型别名：厂商只在 UA 里写型号代码不写市场名，所以由管理员命名一次，之后全局生效
+export const getVisitAliases = () => request.get('/admin/visit/aliases')
+export const saveVisitAlias = (data) => request.put('/admin/visit/aliases', data)
+// 清理前先预览会删掉多少条（只数不删）
+export const getVisitCleanPreview = (params) => request.get('/admin/visit/clean/preview', { params })
+// params: timePreset(today/7d/30d/90d/custom/all) + startDate/endDate + userKeyword + ip
+export const cleanVisitLogs = (params) => request.delete('/admin/visit/clean', { params })

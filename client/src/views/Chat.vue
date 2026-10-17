@@ -4,8 +4,13 @@
     <div class="chat-topbar">
       <div class="topbar-inner">
         <div class="chat-title">
-          <span class="peer-name">{{ isSystem ? '系统通知' : (otherNickname || '对话') }}</span>
-          <span class="peer-sub">{{ isSystem ? '订单状态与交易通知' : '' }}</span>
+          <span
+            class="peer-name"
+            :class="{ clickable: !isSystem }"
+            :title="isSystem ? '' : '查看 TA 的主页'"
+            @click="goOtherProfile"
+          >{{ isSystem ? '系统通知' : (otherNickname || '对话') }}</span>
+          <span class="peer-sub">{{ isSystem ? '交易、审核与账号通知' : '' }}</span>
         </div>
         <div class="topbar-actions">
           <button class="icon-btn" @click="$router.push(`/products`)" title="逛市场">
@@ -24,7 +29,13 @@
           </div>
         </template>
         <div v-for="msg in messages" :key="msg.id" :class="['msg-row', msg.fromUserId === userId ? 'row-self' : 'row-other']">
-          <div class="msg-avatar" v-if="msg.fromUserId !== userId">
+          <div
+            class="msg-avatar"
+            v-if="msg.fromUserId !== userId"
+            :class="{ clickable: !isSystemSender(msg) }"
+            :title="isSystemSender(msg) ? '' : '查看 TA 的主页'"
+            @click="goUserProfile(msg)"
+          >
             <img v-if="msg.sender?.avatar" :src="msg.sender.avatar" alt="avatar" />
             <span v-else class="avatar-fallback">{{ (msg.sender?.nickname || '友')[0] }}</span>
           </div>
@@ -141,6 +152,23 @@ const goConfirm = (msg) => {
   router.push(`/products/${msg.productId}`)
 }
 
+// 判断某条消息是否来自 system 账号。
+// system 没有公开主页（GET /users/17 会 404），所以它的头像不能作为入口。
+const isSystemSender = (msg) => msg.sender?.username === 'system'
+
+// 点击消息头像 → 对方主页。
+// 自己发的消息不渲染头像（模板里已用 v-if 过滤），所以这里必然是对方。
+const goUserProfile = (msg) => {
+  if (isSystemSender(msg) || !msg.fromUserId) return
+  router.push(`/user/${msg.fromUserId}`)
+}
+
+// 点击顶部昵称 → 对方主页；系统通知会话不跳
+const goOtherProfile = () => {
+  if (isSystem.value || !otherUserId.value) return
+  router.push(`/user/${otherUserId.value}`)
+}
+
 const loadData = async () => {
   if (!otherUserId.value) return
   loading.value = true
@@ -236,6 +264,14 @@ watch(() => route.params.userId, (newId, oldId) => {
   color: var(--color-text);
   letter-spacing: -0.01em;
 }
+/* 可点击的对方昵称：悬停变主题色，提示可进入主页 */
+.peer-name.clickable {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.peer-name.clickable:hover {
+  color: var(--color-primary);
+}
 .peer-sub {
   display: block;
   font-size: 12px;
@@ -307,6 +343,15 @@ watch(() => route.params.userId, (newId, oldId) => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+/* 可点击头像：轻微放大 + 加深阴影，给出「可点」的视觉反馈 */
+.msg-avatar.clickable {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.msg-avatar.clickable:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
 }
 .avatar-fallback {
   color: #fff;
@@ -508,6 +553,17 @@ watch(() => route.params.userId, (newId, oldId) => {
    移动端响应式（≤768px）
    ================================================================ */
 @media (max-width: 768px) {
+  /* 移动端：整页背景跟外层一致。
+     输入框改为文档流内的最后一个 flex 子元素（不再 fixed），
+     这样它天然贴在页面底部，也不会被页面进场动画的 transform 影响而"跳动"。
+     高度用可视区兜底（聊天页不显示底部 TabBar，所以只减去 56px 顶栏），
+     即使父级高度链断裂也能撑满，输入框永远在最底下 */
+  .chat-page {
+    background: var(--color-bg-secondary);
+    height: calc(100vh - 56px);
+    height: calc(100dvh - 56px);
+  }
+
   .topbar-inner {
     padding: 0 12px;
     height: 52px;
@@ -565,8 +621,18 @@ watch(() => route.params.userId, (newId, oldId) => {
     font-size: 10px;
     margin-top: 3px;
   }
+  /* 移动端输入框：文档流内贴在页面底部（不再 fixed，避免随页面动画跳动）
+     键盘弹起时由 viewport 的 interactive-widget=resizes-content 压缩布局视口，
+     输入框自然会待在键盘上方 */
   .chat-inputbar {
-    padding: 0 10px 12px;
+    position: relative;
+    flex-shrink: 0;
+    padding: 8px 10px calc(env(safe-area-inset-bottom) + 10px);
+    background: rgba(247, 248, 250, 0.88);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    z-index: 5;
   }
   .inputbar-inner {
     padding: 3px 3px 3px 16px;

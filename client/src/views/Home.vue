@@ -12,7 +12,7 @@
             <input
               v-model="heroKeyword"
               class="search-input"
-              placeholder=""
+              placeholder="搜索教材、数码、服饰、美妆…"
               @keyup.enter="searchFromHero"
               @focus="searchFocused = true"
               @blur="searchFocused = false"
@@ -23,8 +23,8 @@
       </div>
     </section>
 
-    <!-- 分类导航 -->
-    <section class="categories-section">
+    <!-- 分类导航（加载失败时整块收起，避免留下一片空白） -->
+    <section v-if="!loadFailed" class="categories-section">
       <div class="container">
         <div class="categories-grid">
           <div
@@ -51,7 +51,27 @@
             查看更多 <el-icon><ArrowRight /></el-icon>
           </a>
         </div>
-        <div class="products-grid">
+        <!-- 首次加载骨架屏 -->
+        <div v-if="loading" class="skeleton-grid">
+          <div v-for="n in 8" :key="'sk' + n" class="skeleton-card">
+            <div class="skeleton-img"></div>
+            <div class="skeleton-line lg"></div>
+            <div class="skeleton-line sm"></div>
+          </div>
+        </div>
+        <!-- 加载失败：给明确提示和重试入口，而不是让页面空着一块 -->
+        <el-empty
+          v-else-if="loadFailed"
+          description="加载失败，请重试"
+          :image-size="120"
+        >
+          <div class="load-fail-actions">
+            <button class="btn-primary" @click="continueWaiting">继续等待</button>
+            <button class="btn-secondary" @click="loadHome">重试</button>
+          </div>
+        </el-empty>
+
+        <div v-else class="products-grid">
           <div
             v-for="p in latestProducts"
             :key="p.id"
@@ -78,7 +98,15 @@
             </div>
           </div>
         </div>
-        <el-empty v-if="latestProducts.length === 0" description="暂无商品" :image-size="120" />
+        <!-- 「还没有人发布商品」只在真的加载成功且确实没数据时才显示。
+            原来没加 !loading 判断，首次进入时骨架屏会跟这条空态一起冒出来。 -->
+        <el-empty
+          v-if="!loading && !loadFailed && latestProducts.length === 0"
+          description="还没有人发布商品"
+          :image-size="120"
+        >
+          <button class="btn-primary" @click="$router.push('/publish')">发布第一件闲置</button>
+        </el-empty>
       </div>
     </section>
   </div>
@@ -88,13 +116,21 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCategories, getProducts } from '@/api'
+import { setLongWait } from '@/utils/request'
 import { Search, ArrowRight } from '@element-plus/icons-vue'
 import SmartImage from '@/components/SmartImage.vue'
 import CategoryIcon from '@/components/CategoryIcon.vue'
 
+// 供 Layout.vue 的 <keep-alive :include> 匹配，改这里要同步改 Layout 的 cachedViews
+defineOptions({ name: 'Home' })
+
 const router = useRouter()
 const categories = ref([])
 const latestProducts = ref([])
+const loading = ref(true)
+// 加载失败标记：区分「请求失败」和「确实没有数据」，
+// 失败时不再让页面空着（之前只 console.error，用户看不到任何反馈）。
+const loadFailed = ref(false)
 const heroKeyword = ref('')
 const searchFocused = ref(false)
 
@@ -110,7 +146,10 @@ const getCategoryEmoji = (categoryId) => {
   return categoryEmojis[categoryId] || '📦'
 }
 
-onMounted(async () => {
+// 抽成独立函数，失败态的「重试」按钮直接复用
+const loadHome = async () => {
+  loading.value = true
+  loadFailed.value = false
   try {
     const [catRes, prodRes] = await Promise.all([
       getCategories(),
@@ -120,11 +159,39 @@ onMounted(async () => {
     latestProducts.value = prodRes.data.list
   } catch (e) {
     console.error('加载首页失败', e)
+    // 两个请求是 Promise.all，任一失败就整体算失败：
+    // 清掉可能已写入的半截数据，避免出现「分类正常、商品空白」这种看起来没坏的中间态。
+    categories.value = []
+    latestProducts.value = []
+    loadFailed.value = true
+  } finally {
+    loading.value = false
   }
-})
+}
+
+onMounted(loadHome)
+
+// 「继续等待」：用户明确表示愿意多等，把这批请求的超时放宽到 60 秒再跑一次。
+// 跑完必须复位，否则后续其它页面的请求也会跟着放宽。
+const continueWaiting = async () => {
+  setLongWait(true)
+  try {
+    await loadHome()
+  } finally {
+    setLongWait(false)
+  }
+}
 </script>
 
 <style scoped>
+/* 「加载失败」的两个操作并排：继续等待（主）+ 重试（次） */
+.load-fail-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .home {
   background: var(--color-bg-secondary);
 }
@@ -225,39 +292,39 @@ onMounted(async () => {
 
 /* ===== Categories ===== */
 .categories-section {
-  padding: 40px 0;
+  padding: 24px 0 8px;
 }
 
 .categories-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 
 .category-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 24px 0;
-  border-radius: var(--radius-lg);
+  gap: 6px;
+  padding: 12px 2px;
+  border-radius: 14px;
   background: var(--color-card);
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: all 0.3s ease;
 }
 
 .category-item:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 .category-icon {
-  width: 56px;
-  height: 56px;
+  width: 46px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 16px;
+  border-radius: 12px;
   background: #fff;
   color: #333;
   transition: color 0.3s ease;
@@ -267,7 +334,7 @@ onMounted(async () => {
 }
 
 .category-name {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-text-secondary);
   font-weight: 500;
 }
@@ -413,7 +480,9 @@ onMounted(async () => {
    ================================================================ */
 @media (max-width: 768px) {
   .hero {
-    padding: 44px 0 36px;
+    /* 下内边距 36 → 24：原本它与分类区上内边距叠加后让胶囊上方留了 50px，
+       而下方只有 18px，上下严重不均 */
+    padding: 44px 0 24px;
   }
 
   .hero-title {
@@ -448,34 +517,63 @@ onMounted(async () => {
   }
 
   .categories-section {
-    padding: 16px 0;
+    /* 与 .hero 下内边距、.categories-grid 内边距叠加后：
+       胶囊上方 ≈ 30px、下方 ≈ 30px，上下均衡 */
+    padding: 4px 0 8px;
   }
 
-  /* 8 列 → 4 列 */
+  /* 移动端：4 列图标网格 → 单行纯文字胶囊，横向滑动。
+     桌面端（8 列网格 + 图标）保持不变，仅在此断点内覆盖 */
   .categories-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    /* 上下留一点余量，避免胶囊的圆角被裁掉 */
+    padding: 2px 0 4px;
+    /* 滑动结束时吸附到标签边界，不会停在两个标签中间 */
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    /* 隐藏滚动条：Firefox */
+    scrollbar-width: none;
+  }
+
+  /* 隐藏滚动条：WebKit（Chrome / Safari / 微信内置浏览器） */
+  .categories-grid::-webkit-scrollbar {
+    display: none;
   }
 
   .category-item {
-    gap: 8px;
-    padding: 14px 4px;
-    border-radius: var(--radius-md);
+    /* 不再等分列宽：按内容宽度排列，且不被压缩 */
+    flex: 0 0 auto;
+    flex-direction: row;
+    gap: 0;
+    padding: 8px 16px;
+    border-radius: 980px;
+    scroll-snap-align: start;
+    transition: background 0.25s ease;
   }
 
+  /* 移动端没有 hover，用 :active 给出按压反馈 */
+  .category-item:active {
+    background: var(--color-bg-secondary);
+  }
+
+  /* 移动端隐藏图标，只保留文字 */
   .category-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 13px;
-    font-size: 13px;
+    display: none;
   }
 
   .category-name {
-    font-size: 12px;
+    font-size: 14px;
+    color: var(--color-text);
+    font-weight: 500;
+    white-space: nowrap;
   }
 
   .products-section {
-    padding: 8px 0 8px;
+    /* 上内边距 8 → 18：与分类区下内边距叠加后补足到 30px，
+       让「最新发布」与上方胶囊的间距和胶囊与搜索框的间距一致 */
+    padding: 18px 0 8px;
   }
 
   .section-header {
@@ -505,10 +603,6 @@ onMounted(async () => {
   .category-item:hover {
     transform: none;
     box-shadow: none;
-  }
-
-  .category-item:hover .category-icon {
-    color: #333;
   }
 
   .product-image {
@@ -569,8 +663,8 @@ onMounted(async () => {
 /* 超窄屏（≤400px）进一步收紧 */
 @media (max-width: 400px) {
   .category-icon {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
   }
 
   .product-price {

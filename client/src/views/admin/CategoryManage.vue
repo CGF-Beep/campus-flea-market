@@ -74,7 +74,6 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { getCategories, createCategory, updateCategory, deleteCategory } from '@/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import CategoryIcon from '@/components/CategoryIcon.vue'
 

@@ -26,30 +26,35 @@
         >{{ tab.label }}</div>
       </div>
 
-      <!-- 商品卡片网格 -->
-      <div class="products-grid" v-loading="loading">
-        <div
-          v-for="(p, i) in products"
-          :key="p.id"
-          class="product-card animate-in"
-          :style="{ animationDelay: `${i * 60}ms` }"
-          @click="$router.push(`/products/${p.id}`)"
-        >
-          <SmartImage
-            class="prod-img"
-            :src="(p.images && p.images[0]) || ''"
-            :emoji="categoryEmoji[p.categoryId] || '📦'"
-            :alt="p.title"
-          />
-          <div class="prod-body">
-            <div class="prod-title">{{ p.title }}</div>
-            <div class="prod-row">
-              <span class="prod-price">￥{{ p.price }}</span>
-              <span class="status-pill" :class="statusClass(p.status)">{{ statusText(p.status) }}</span>
+      <!-- 首次加载骨架屏（与逛市场商品卡片同尺寸） -->
+      <div v-if="loading && products.length === 0" class="skeleton-grid">
+        <div v-for="n in 4" :key="'sk' + n" class="skeleton-card">
+          <div class="skeleton-img"></div>
+          <div class="skeleton-line lg"></div>
+          <div class="skeleton-line sm"></div>
+        </div>
+      </div>
+
+      <!-- 商品卡片网格（首次用骨架，后续直接数据切换） -->
+      <div class="products-grid">
+        <div v-for="p in products" :key="p.id" class="product-card">
+          <div class="prod-main" @click="$router.push(`/products/${p.id}`)">
+            <SmartImage
+              class="prod-img"
+              :src="(p.images && p.images[0]) || ''"
+              :emoji="categoryEmoji[p.categoryId] || '📦'"
+              :alt="p.title"
+            />
+            <div class="prod-info">
+              <div class="prod-title">{{ p.title }}</div>
+              <div class="prod-meta">
+                <span class="meta-item"><el-icon><View /></el-icon> {{ p.views || 0 }} 次浏览</span>
+                <span class="meta-item">{{ formatDate(p.createdAt) }}</span>
+              </div>
             </div>
-            <div class="prod-meta">
-              <span class="meta-item"><el-icon><View /></el-icon> {{ p.views || 0 }} 次浏览</span>
-              <span class="meta-item">{{ formatDate(p.createdAt) }}</span>
+            <div class="prod-right">
+              <div class="prod-price">￥{{ p.price }}</div>
+              <span class="status-pill" :class="statusClass(p.status)">{{ statusText(p.status) }}</span>
             </div>
           </div>
           <div class="prod-actions" @click.stop>
@@ -94,7 +99,6 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
 import { getMyProducts, removeProduct, deleteProduct } from '@/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View } from '@element-plus/icons-vue'
 import SmartImage from '@/components/SmartImage.vue'
 import { useTabSlider } from '@/composables/useTabSlider.js'
@@ -141,7 +145,7 @@ const statusText = (s) => ({ pending: '待审核', on_sale: '在售', sold: '已
 const statusClass = (s) => ({
   pending: 'pill-warning',
   on_sale: 'pill-success',
-  sold: 'pill-blue',
+  sold: 'pill-primary',
   rejected: 'pill-red',
   removed: 'pill-gray'
 })[s] || 'pill-gray'
@@ -240,10 +244,11 @@ onMounted(() => {
   color: var(--color-text);
 }
 
-/* 商品网格 */
+/* 卡片列表：与「我的订单」保持一致的横向列表卡结构
+   （缩略图在左 / 信息居中 / 价格与状态在右 / 底部操作条） */
 .products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 16px;
   min-height: 200px;
 }
@@ -251,74 +256,84 @@ onMounted(() => {
   background: var(--color-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.3s ease;
   overflow: hidden;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
+/* 显式覆盖 global.css 里 .product-card:hover 的 translateY 抬起动画：
+   列表卡片只需阴影变化，整行位移会让观感不稳 */
 .product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-lg);
+  transform: none;
+  box-shadow: var(--shadow-md);
+}
+.prod-main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  cursor: pointer;
 }
 .prod-img {
-  width: 100%;
-  height: 160px;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
   overflow: hidden;
 }
-.prod-body {
-  padding: 12px 14px 8px;
+.prod-info {
+  flex: 1;
+  min-width: 0;
 }
 .prod-title {
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.prod-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 8px;
-}
-.prod-price {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-price);
-  letter-spacing: -0.02em;
-}
 .prod-meta {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  gap: 20px;
+  margin-top: 8px;
 }
 .meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--color-text-tertiary);
+  gap: 5px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.prod-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.prod-price {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-price);
+  letter-spacing: -0.02em;
 }
 .prod-actions {
   display: flex;
-  justify-content: center;
-  gap: 2px;
-  padding: 0 6px 8px;
-  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  background: #fafafa;
 }
 
-/* 状态胶囊 */
+/* 状态胶囊（尺寸与「我的订单」保持一致） */
 .status-pill {
   display: inline-block;
-  padding: 3px 12px;
+  padding: 4px 14px;
   border-radius: 980px;
   font-size: 12px;
   font-weight: 600;
 }
-.pill-blue { color: #0071e3; background: rgba(0, 113, 227, 0.12); }
+.pill-primary { color: #0071e3; background: rgba(0, 113, 227, 0.12); }
 .pill-success { color: #1d8a3d; background: rgba(52, 199, 89, 0.14); }
 .pill-warning { color: #c76f00; background: rgba(255, 149, 0, 0.14); }
 .pill-red { color: var(--color-danger); background: rgba(255, 59, 48, 0.1); }
@@ -327,7 +342,7 @@ onMounted(() => {
 .btn-text {
   border: none;
   background: transparent;
-  padding: 4px 10px;
+  padding: 7px 18px;
   border-radius: 980px;
   font-size: 12px;
   font-weight: 500;
@@ -384,59 +399,79 @@ onMounted(() => {
   }
 
   .products-grid {
-    grid-template-columns: repeat(2, 1fr);
+    /* 已是 flex 纵向列表，移动端只需收紧卡片间距 */
     gap: 12px;
   }
 
-  .product-card:hover {
-    transform: none;
+  .prod-main {
+    padding: 12px;
+    gap: 10px;
+    align-items: flex-start;
+    /* 允许右侧价格+状态换到第二行 */
+    flex-wrap: wrap;
   }
 
   .prod-img {
-    height: auto;
-    aspect-ratio: 1 / 1;
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-sm);
   }
 
-  .prod-body {
-    padding: 10px 10px 6px;
+  .prod-info {
+    flex: 1 1 calc(100% - 74px);
+    min-width: 0;
   }
 
   .prod-title {
-    font-size: 13px;
-  }
-
-  .prod-row {
-    margin-top: 6px;
-  }
-
-  .prod-price {
     font-size: 15px;
   }
 
+  /* meta 两项都很短（如「22 次浏览」「2026/8/6」），保持一行即可，
+     竖排会白占两行高度 */
   .prod-meta {
-    margin-top: 4px;
-    padding-top: 4px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin-top: 6px;
   }
 
   .meta-item {
-    font-size: 11px;
+    font-size: 12px;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  /* 4 个操作按钮改为可换行 + 紧凑 */
+  /* 价格 + 状态：换到第二行，并缩进到与标题左对齐
+     （缩进 = 缩略图 64 + 间距 10 = 74px），避免贴到卡片最左侧显得孤立 */
+  .prod-right {
+    flex: 1 1 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding-left: 74px;
+  }
+
+  .prod-price {
+    font-size: 17px;
+  }
+
   .prod-actions {
+    padding: 10px 14px;
     flex-wrap: wrap;
-    gap: 2px;
-    padding: 0 4px 8px;
+    gap: 6px 4px;
   }
 
   .btn-text {
-    padding: 4px 8px;
-    font-size: 11px;
+    padding: 5px 12px;
+    font-size: 12px;
   }
 
   .status-pill {
-    padding: 2px 8px;
-    font-size: 10px;
+    padding: 3px 10px;
+    font-size: 11px;
   }
 
   .pagination {

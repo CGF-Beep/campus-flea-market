@@ -21,7 +21,21 @@
               </span>
             </div>
 
-            <div class="pwd-section">
+            <!-- 移动端：折叠为一行入口，点击从底部滑出表单（桌面端由 CSS 隐藏） -->
+            <button type="button" class="pwd-trigger" @click="pwdVisible = true">
+              <span>修改密码</span>
+              <el-icon :size="16"><ArrowRight /></el-icon>
+            </button>
+
+            <!-- 移动端浮层遮罩 -->
+            <div class="pwd-mask" :class="{ show: pwdVisible }" @click="pwdVisible = false"></div>
+
+            <div class="pwd-section" :class="{ 'sheet-open': pwdVisible }">
+              <!-- 移动端浮层顶部条（桌面端隐藏） -->
+              <div class="pwd-sheet-bar">
+                <span class="pwd-sheet-title">修改密码</span>
+                <button type="button" class="pwd-sheet-close" @click="pwdVisible = false">关闭</button>
+              </div>
               <div class="section-title">修改密码</div>
               <el-form :model="pwdForm" label-position="top" @submit.prevent>
                 <el-form-item label="原密码">
@@ -116,9 +130,9 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { updateProfile, changePassword, uploadFile } from '@/api'
-import { ElMessage } from 'element-plus'
 import { COLLEGES } from '@/utils/profile'
 import { notifyUnexpected } from '@/utils/notify'
+import { ArrowRight } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
 const editing = ref(false)
@@ -127,6 +141,8 @@ const pwdForm = reactive({ oldPassword: '', newPassword: '' })
 const fileInput = ref(null)
 const uploading = ref(false)
 const avatarError = ref(false)
+// 移动端「修改密码」浮层开关（桌面端该入口被 CSS 隐藏，始终为 false）
+const pwdVisible = ref(false)
 
 // 写回本地存储时保留 token，否则后续请求会因缺少 Authorization 被登出
 const persistUser = (data) => {
@@ -210,6 +226,8 @@ const handleChangePwd = async () => {
     ElMessage.success('密码修改成功')
     pwdForm.oldPassword = ''
     pwdForm.newPassword = ''
+    // 移动端：改完自动收起浮层（桌面端本来就是 false，无副作用）
+    pwdVisible.value = false
   } catch (e) {
     notifyUnexpected(e)
   }
@@ -371,6 +389,14 @@ onMounted(async () => {
   background: rgba(0, 113, 227, 0.1);
 }
 
+/* 移动端「修改密码」入口 / 浮层遮罩 / 浮层顶部条：桌面端一律不显示，
+   桌面端仍用下面的内联表单 */
+.pwd-trigger,
+.pwd-mask,
+.pwd-sheet-bar {
+  display: none;
+}
+
 .pwd-section {
   padding: 24px 28px 28px;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
@@ -475,12 +501,166 @@ onMounted(async () => {
   grid-column: 1 / -1;
 }
 
+/* ================================================================
+   移动端（≤640px）：去卡片背景，改为「页面即容器」的分组式布局
+   卡片的白底 / 阴影 / 32px 大圆角在窄屏上会形成一层层「套娃」，
+   改用留白 + 分隔线区分区块，同时按窄屏重调字号与内边距比例
+   ================================================================ */
 @media (max-width: 640px) {
+  .profile {
+    /* 页面内边距收紧：内容更贴边，可用宽度更大 */
+    padding: 20px 16px 32px;
+  }
+
+  .profile-layout {
+    gap: 20px;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
   .form-grid .col-full {
     grid-column: auto;
+  }
+
+  /* 去掉卡片背景 / 圆角 / 阴影 */
+  .card {
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+  /* 移动端无 hover，直接取消阴影变化 */
+  .card:hover {
+    box-shadow: none;
+  }
+
+  /* 身份区：由居中大块改为紧凑的顶部区 */
+  .user-body {
+    padding: 8px 4px 20px;
+  }
+  .user-name {
+    font-size: 19px;
+  }
+
+  /* 「修改密码」在移动端折叠为一行入口 + 底部浮层：
+     内联表单在窄屏竖占空间太大，收起后页面只剩身份区与信息列表 */
+  .pwd-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 2px;
+    /* 不再画下边框：紧跟其后的 .info-card 已有 border-top，
+       两者相邻会叠成双线 */
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+  .pwd-trigger .el-icon {
+    color: var(--color-text-tertiary);
+  }
+
+  /* 浮层遮罩 */
+  .pwd-mask {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.28s ease, visibility 0.28s ease;
+  }
+  .pwd-mask.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* 表单浮层：从底部滑入。
+     复用同一份表单 DOM，只是改变呈现方式，避免把表单写两遍 */
+  .pwd-section {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2200;
+    max-height: 86vh;
+    overflow-y: auto;
+    padding: 18px 20px calc(22px + env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: none;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.16);
+    transform: translateY(110%);
+    transition: transform 0.32s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  .pwd-section.sheet-open {
+    transform: translateY(0);
+  }
+
+  /* 浮层顶部条（含关闭） */
+  .pwd-sheet-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .pwd-sheet-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text);
+  }
+  .pwd-sheet-close {
+    border: none;
+    background: transparent;
+    padding: 4px 0;
+    font-size: 14px;
+    color: var(--color-primary);
+    cursor: pointer;
+  }
+
+  /* 顶部条已有标题，隐藏原小节标题避免重复 */
+  .pwd-section .section-title {
+    display: none;
+  }
+
+  .info-card {
+    padding: 20px 4px 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  /* 字号比例：标题收一档，正文保持 14px 可读 */
+  .card-title {
+    font-size: 17px;
+  }
+  .card-sub {
+    margin-top: 3px;
+    font-size: 12px;
+  }
+  .card-header {
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+
+  /* 信息行：去掉灰底块，改为轻量的分隔线列表 */
+  .info-list {
+    gap: 0;
+  }
+  .info-row {
+    padding: 14px 2px;
+    border-radius: 0;
+    background: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  .info-row:last-child {
+    border-bottom: none;
   }
 }
 

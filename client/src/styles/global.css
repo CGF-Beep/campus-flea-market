@@ -24,6 +24,12 @@
   --radius-lg: 20px;
   --radius-xl: 28px;
   --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  /* 移动端底部 TabBar：内容区 56px + 手势条留白。
+     留白 = max(系统安全区, 10px)：iPhone 返回 34px 就按系统的，
+     安卓浏览器常返回 0，则补 10px 避免与系统手势提示条贴太近（刻意保守，不做太高）。 */
+  --mobile-tabbar-bottom-gap: max(env(safe-area-inset-bottom, 0px), 10px);
+  --mobile-tabbar-height: calc(56px + var(--mobile-tabbar-bottom-gap));
 }
 
 * {
@@ -360,20 +366,8 @@ input, textarea, select {
 }
 
 /* ========== 动画 ========== */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-in {
-  animation: fadeInUp 0.6s ease forwards;
-}
+/* 说明：列表卡片的阶梯入场动画已按需求移除，
+   页面切换统一走 Layout 的 .fade-slide 过渡（淡入 + 14px 横向位移） */
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }
@@ -574,9 +568,227 @@ input, textarea, select {
   border-radius: var(--radius-md);
 }
 
-/* 后台分页 */
-.admin-layout .el-pagination.is-background .el-pager li:not(.is-disabled).is-active {
-  background-color: var(--admin-primary);
+/* ================================================================
+   后台筛选栏（统一）：一体化搜索框 + 右侧筛选下拉
+   搜索框是「胶囊外壳 + 内嵌输入 + 内嵌搜索按钮」——按钮长在框里面，
+   用户一眼就知道它是搜这个框的，不会误以为在搜旁边的下拉。
+   用法：
+     <div class="admin-filter-bar">
+       <div class="admin-filter-search">
+         <el-input class="admin-search-input" ... />
+         <button class="admin-search-btn" @click="search">搜索</button>
+       </div>
+       <el-select class="admin-filter-select" ... />   (可选)
+     </div>
+   PC 与手机都排成一行：搜索框吃掉剩余宽度，下拉固定在右侧。
+   ================================================================ */
+.admin-layout .admin-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+/* ---- 一体化搜索框外壳 ---- */
+.admin-layout .admin-filter-search {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 43px;
+  padding: 0 4px 0 10px;
+  background: var(--admin-card);
+  border: 1.5px solid #e5e7eb;
+  border-radius: 980px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.admin-layout .admin-filter-search:hover {
+  border-color: #c7cbd4;
+}
+
+/* 聚焦高亮落在整个外壳上，而不是内层输入框 */
+.admin-layout .admin-filter-search:focus-within {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+}
+
+/* 内层 el-input：摘掉自带边框与填充，融进外壳 */
+.admin-layout .admin-filter-search .el-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-layout .admin-filter-search .el-input__wrapper {
+  background: transparent;
+  box-shadow: none !important;
+  padding: 0 2px 0 6px;
+  min-height: 32px;
+}
+
+.admin-layout .admin-filter-search .el-input__inner {
+  font-size: 14px;
+}
+
+/* ---- 内嵌搜索按钮 ---- */
+.admin-layout .admin-search-btn {
+  flex: none;
+  height: 33px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 980px;
+  background: var(--admin-primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.admin-layout .admin-search-btn:hover {
+  background: var(--admin-primary-hover);
+}
+
+.admin-layout .admin-search-btn:active {
+  transform: scale(0.97);
+}
+
+/* ---- 右侧筛选下拉 ----
+   ⚠️ el-select 自身带 width:100%，必须显式改回 auto，
+   否则 flex-basis 会被 width 顶掉、下拉独占一整行 */
+.admin-layout .admin-filter-select {
+  flex: 0 0 136px;
+  width: auto;
+  min-width: 0;
+}
+
+.admin-layout .admin-filter-select .el-select__wrapper {
+  background: var(--admin-card);
+  border: 1.5px solid #e5e7eb;
+  border-radius: 980px !important;
+  padding: 4px 14px;
+  min-height: 43px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.admin-layout .admin-filter-select .el-select__wrapper:hover {
+  border-color: #c7cbd4;
+}
+
+.admin-layout .admin-filter-select .el-select__wrapper.is-focused {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+}
+
+.admin-layout .admin-filter-select .el-select__placeholder,
+.admin-layout .admin-filter-select .el-select__selected-item {
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .admin-layout .admin-filter-bar {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  /* 手机上同样一行：搜索框吃掉剩余宽度，下拉收窄 */
+  .admin-layout .admin-filter-search {
+    flex: 1 1 170px;
+    height: 39px;
+    padding: 0 3px 0 8px;
+  }
+
+  .admin-layout .admin-search-btn {
+    height: 30px;
+    padding: 0 13px;
+    font-size: 13px;
+  }
+
+  .admin-layout .admin-filter-select {
+    flex: 0 0 106px;
+  }
+
+  .admin-layout .admin-filter-select .el-select__wrapper {
+    min-height: 39px;
+    padding: 3px 10px;
+  }
+
+  /* 后台管理页移动端：不要白色卡片外壳，内容直接铺在页面底色上。
+     ⚠️ 必须限定在 .admin-page 内 —— 看板（Dashboard）也用了 .admin-card，
+     但它的图表卡需要白底，不能一起摘掉 */
+  .admin-layout .admin-page .admin-card,
+  .admin-layout .admin-page .admin-card:hover {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    transform: none;
+  }
+
+  /* 外层白卡摘掉后，列表项要自己带白底才立得起来 */
+  .admin-layout .admin-page .mobile-list .m-card {
+    background: var(--admin-card);
+  }
+}
+
+/* ========== 全站分页统一：扁平 iOS 药丸风格 ==========
+   业务页与后台都用 <el-pagination background>，Element Plus 默认是实心方块；
+   这里统一压成扁平药丸，选中态用主题色浅底。
+   后台通过下面 --pagination-* 变量切换为靛蓝色。 */
+.el-pagination .btn-prev,
+.el-pagination .btn-next,
+.el-pagination .el-pager li,
+.el-pagination.is-background .btn-prev,
+.el-pagination.is-background .btn-next,
+.el-pagination.is-background .el-pager li {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 10px !important;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  min-width: 32px;
+  height: 32px;
+  line-height: 32px;
+  font-size: 13px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.el-pagination .el-pager li.is-active,
+.el-pagination.is-background .el-pager li.is-active,
+.el-pagination.is-background .el-pager li:not(.is-disabled).is-active {
+  background: var(--pagination-active-bg, rgba(0, 113, 227, 0.1)) !important;
+  color: var(--pagination-active-color, var(--color-primary)) !important;
+  font-weight: 600;
+}
+
+.el-pagination .btn-prev:not(.is-disabled):hover,
+.el-pagination .btn-next:not(.is-disabled):hover,
+.el-pagination .el-pager li:not(.is-disabled):hover,
+.el-pagination.is-background .btn-prev:not(.is-disabled):hover,
+.el-pagination.is-background .btn-next:not(.is-disabled):hover,
+.el-pagination.is-background .el-pager li:not(.is-disabled):hover {
+  background: var(--pagination-hover-bg, rgba(0, 113, 227, 0.06)) !important;
+  color: var(--pagination-hover-color, var(--color-primary)) !important;
+}
+
+.el-pagination .btn-prev.is-disabled,
+.el-pagination .btn-next.is-disabled {
+  background: transparent !important;
+  color: #c7c7cc !important;
+  cursor: not-allowed;
+}
+
+/* 后台分页沿用靛蓝主题色 */
+.admin-layout {
+  --pagination-active-bg: rgba(79, 70, 229, 0.12);
+  --pagination-active-color: var(--admin-primary);
+  --pagination-hover-bg: rgba(79, 70, 229, 0.06);
+  --pagination-hover-color: var(--admin-primary);
 }
 
 /* 后台页面切换动画 */
@@ -604,4 +816,211 @@ input, textarea, select {
   .page-content {
     padding: 20px 0 40px;
   }
+}
+
+/* ================================================================
+   加载骨架屏（Skeleton）：内容加载时的占位卡片 + 微光扫过动画
+   用法：容器 .skeleton-grid > 若干 .skeleton-card
+   ================================================================ */
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.skeleton-card {
+  border-radius: var(--radius-md, 16px);
+  background: var(--color-bg-secondary, #f5f7fa);
+  padding: 0 0 12px;
+  overflow: hidden;
+}
+
+.skeleton-img,
+.skeleton-line {
+  position: relative;
+  overflow: hidden;
+  background: #e9edf2;
+}
+
+.skeleton-img {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  border-radius: var(--radius-md, 16px) var(--radius-md, 16px) 0 0;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  margin: 12px 12px 0;
+}
+
+.skeleton-line.lg { width: 72%; }
+.skeleton-line.sm { width: 40%; margin-top: 8px; }
+
+/* 微光扫过 */
+.skeleton-img::after,
+.skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@media (max-width: 768px) {
+  .skeleton-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .skeleton-line { height: 10px; margin: 10px 10px 0; }
+  .skeleton-line.sm { margin-top: 6px; }
+}
+
+/* 尊重系统减少动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-img::after,
+  .skeleton-line::after {
+    animation: none;
+  }
+}
+
+/* ================================================================
+   订单列表骨架（横排卡：缩略图 + 文字条）
+   ================================================================ */
+.skeleton-orders {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-order {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-md, 16px);
+  background: var(--color-bg-secondary, #f5f7fa);
+}
+
+.skeleton-thumb {
+  position: relative;
+  overflow: hidden;
+  width: 76px;
+  height: 76px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  background: #e9edf2;
+}
+
+.skeleton-order-lines {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.skeleton-line.md { width: 55%; margin-top: 10px; }
+
+/* 缩略图同样带微光 */
+.skeleton-thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (max-width: 768px) {
+  .skeleton-order { padding: 12px; gap: 10px; }
+  .skeleton-thumb { width: 64px; height: 64px; }
+}
+
+/* ================================================================
+   消息会话列表骨架（圆形头像 + 两段文字条）
+   与 .conv-item 结构对齐：flex 行 / 46px 圆 / 12px 间距
+   ================================================================ */
+.skeleton-conv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+}
+
+.skeleton-conv-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-lg, 20px);
+  background: var(--color-bg-secondary, #f5f7fa);
+}
+
+.skeleton-conv-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #e9edf2;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-conv-lines {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 复用现有 .skeleton-line 的微光 */
+/* 在列表项内重新指定 margin，复用全局 12px 会偏大 */
+.skeleton-conv-lines .skeleton-line {
+  margin: 0;
+  height: 12px;
+}
+.skeleton-conv-lines .skeleton-line.lg { width: 52%; }
+.skeleton-conv-lines .skeleton-line.sm { width: 80%; }
+
+.skeleton-conv-avatar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (max-width: 768px) {
+  .skeleton-conv-list {
+    padding: 4px 0;
+    gap: 0;
+  }
+  .skeleton-conv-item {
+    border-radius: 0;
+    background: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  .skeleton-conv-item:last-child { border-bottom: none; }
 }

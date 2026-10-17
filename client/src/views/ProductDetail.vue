@@ -108,8 +108,30 @@
               <div class="seller-info">
                 <span class="seller-name">{{ product.user?.nickname }}</span>
                 <span class="seller-college" v-if="product.user?.college">{{ product.user.college }}</span>
+                <!-- 卖家信用标识：买家判断「靠不靠谱」的核心依据 -->
+                <div class="seller-credit" v-if="product.sellerCredits">
+                  <template v-if="product.sellerCredits.completedCount > 0">
+                    <span class="credit-item">
+                      <el-icon><CircleCheck /></el-icon>
+                      已完成 {{ product.sellerCredits.completedCount }} 笔交易
+                    </span>
+                    <span class="credit-badge trusted" v-if="product.sellerCredits.isTrusted">信用良好</span>
+                  </template>
+                  <template v-else>
+                    <span class="credit-item muted">
+                      <el-icon><Clock /></el-icon>
+                      新卖家 · 暂无成交记录
+                    </span>
+                  </template>
+                  <span class="credit-item muted" v-if="product.sellerCredits.sellingCount > 0">
+                    在售 {{ product.sellerCredits.sellingCount }} 件
+                  </span>
+                </div>
               </div>
               <div class="seller-actions" v-if="!isOwner">
+                <el-button size="small" round @click="goSellerProfile">
+                  <el-icon><User /></el-icon> 他的主页
+                </el-button>
                 <el-button size="small" round @click="startChat">
                   <el-icon><ChatDotRound /></el-icon> 联系卖家
                 </el-button>
@@ -167,8 +189,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getProductDetail, createOrder, addFavorite, removeFavorite, confirmOrder, receiveOrder, cancelOrder } from '@/api'
 import { useUserStore } from '@/stores/user'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { ChatDotRound, Star, InfoFilled, Location } from '@element-plus/icons-vue'
+import { ChatDotRound, Star, InfoFilled, Location, CircleCheck, Clock, User } from '@element-plus/icons-vue'
 import SmartImage from '@/components/SmartImage.vue'
 
 const route = useRoute()
@@ -324,6 +345,15 @@ const startChat = () => {
   })
 }
 
+// 进入卖家主页（看他的信用数据与全部在售商品）
+const goSellerProfile = () => {
+  if (!product.value.user) {
+    ElMessage.warning('卖家信息不存在')
+    return
+  }
+  router.push(`/user/${product.value.user.id}`)
+}
+
 onMounted(() => loadProduct())
 </script>
 
@@ -422,6 +452,9 @@ onMounted(() => loadProduct())
 .seller-card {
   display: flex;
   align-items: center;
+  /* 允许换行：空间不够时让操作按钮掉到第二行，
+     而不是无限压缩中间的信用文案（中文 min-content 只有 1 个字，会被挤成竖排） */
+  flex-wrap: wrap;
   gap: 12px;
   padding: 16px;
   background: var(--color-bg-secondary);
@@ -430,9 +463,71 @@ onMounted(() => loadProduct())
 }
 
 .seller-info {
-  flex: 1;
+  /* 基准 200px + 可伸缩：装不下 200px 时整个操作区换行，绝不把文字挤成一字一列 */
+  flex: 1 1 200px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* 头像不参与压缩，始终保持 44px 圆形 */
+.seller-card :deep(.el-avatar) {
+  flex-shrink: 0;
+}
+
+/* 卖家操作按钮：不参与压缩，宽度按内容（空间不够时靠 .seller-card 的 wrap 换行） */
+.seller-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+/* Element Plus 会给相邻按钮加 12px 左边距，这里清零改用 flex gap 统一控制 */
+.seller-actions .el-button + .el-button {
+  margin-left: 0;
+}
+
+/* 卖家信用标识：已完成单数 / 信用徽章 / 在售件数 */
+.seller-credit {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.credit-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--color-success);
+  font-weight: 500;
+  /* 关键：不允许在词语中间换行，换行由 .seller-credit 的 wrap 控制 */
+  white-space: nowrap;
+}
+
+.credit-item.muted {
+  color: var(--color-text-tertiary);
+  font-weight: 400;
+}
+
+.credit-item .el-icon {
+  font-size: 13px;
+}
+
+.credit-badge {
+  padding: 1px 7px;
+  border-radius: 980px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.credit-badge.trusted {
+  background: rgba(52, 199, 89, 0.12);
+  color: var(--color-success);
 }
 
 .seller-name {
@@ -680,6 +775,42 @@ onMounted(() => loadProduct())
   .seller-card {
     padding: 12px;
     margin-bottom: 16px;
+    /* 移动端：头像+信用占一行，两个按钮换行独占第二行 */
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  /* .seller-info 的 flex 基准沿用桌面端 200px，
+     配合下面 .seller-actions 的 100% 强制换行 —— 不覆盖，避免退回被挤扁的老问题 */
+
+  .seller-name {
+    font-size: 14px;
+  }
+
+  .seller-college {
+    font-size: 12px;
+  }
+
+  .seller-credit {
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .credit-item {
+    font-size: 11px;
+  }
+
+  .seller-actions {
+    flex: 0 0 100%;
+    margin-top: 2px;
+    gap: 8px;
+  }
+
+  /* 换行后两个按钮等分整行；size="small" 默认 24px 太扁，提到 34px 更像可点区域 */
+  .seller-actions .el-button {
+    flex: 1;
+    margin: 0;
+    height: 34px;
   }
 
   .action-btns {

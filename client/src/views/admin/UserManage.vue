@@ -7,20 +7,19 @@
     </div>
 
     <div class="admin-card">
-      <!-- 筛选 -->
-      <div class="filter-bar">
-        <div class="filter-item">
+      <!-- 筛选：一体化搜索框（搜索按钮长在框里，不会误解成搜旁边的控件） -->
+      <div class="admin-filter-bar">
+        <div class="admin-filter-search">
           <el-input
             v-model="keyword"
             placeholder="搜索用户名/昵称/学号"
             clearable
-            class="input-rounded"
             @keyup.enter="loadData"
           >
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
+          <button class="admin-search-btn" @click="loadData">搜索</button>
         </div>
-        <button class="btn-primary btn-sm" @click="loadData">搜索</button>
       </div>
 
       <!-- 表格：弹性撑满卡片剩余高度，行多时内部滚动 -->
@@ -49,6 +48,9 @@
         </el-table-column>
         <el-table-column prop="phone" label="手机号" width="130">
           <template #default="{ row }">{{ row.phone || '—' }}</template>
+        </el-table-column>
+        <el-table-column prop="createdAt" label="注册时间" width="110">
+          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
         </el-table-column>
         <el-table-column label="角色" width="90">
           <template #default="{ row }">
@@ -98,11 +100,16 @@
             <div class="m-cell"><span class="m-label">学号</span><span class="m-value">{{ row.studentId || '—' }}</span></div>
             <div class="m-cell"><span class="m-label">学院</span><span class="m-value">{{ row.college || '—' }}</span></div>
             <div class="m-cell"><span class="m-label">手机</span><span class="m-value">{{ row.phone || '—' }}</span></div>
+            <div class="m-cell"><span class="m-label">注册</span><span class="m-value">{{ formatDate(row.createdAt) }}</span></div>
             <div class="m-cell"><span class="m-label">角色</span><span class="status-pill" :class="row.role === 'admin' ? 'pill-warning' : 'pill-blue'">{{ row.role === 'admin' ? '管理员' : '用户' }}</span></div>
             <div class="m-cell"><span class="m-label">状态</span><span class="status-pill" :class="row.status === 1 ? 'pill-success' : 'pill-danger'">{{ row.status === 1 ? '正常' : '禁用' }}</span></div>
           </div>
         </div>
-        <el-empty v-if="!loading && users.length === 0" description="暂无用户" :image-size="100" />
+        <el-empty
+          v-if="!loading && users.length === 0"
+          :description="keyword ? '没有匹配的用户' : '暂无用户'"
+          :image-size="100"
+        />
       </div>
 
       <div class="pagination">
@@ -122,7 +129,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getAdminUsers, updateUserStatus } from '@/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 
 const loading = ref(false)
@@ -130,6 +136,9 @@ const users = ref([])
 const page = ref(1)
 const total = ref(0)
 const keyword = ref('')
+
+// 注册时间格式化：后台列表只需到「日」，不显示时分秒
+const formatDate = (d) => (d ? new Date(d).toLocaleDateString('zh-CN') : '—')
 
 const loadData = async () => {
   loading.value = true
@@ -155,20 +164,7 @@ onMounted(() => loadData())
 </script>
 
 <style scoped>
-.filter-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.filter-item {
-  width: 260px;
-}
-
-.btn-sm {
-  padding: 10px 24px;
-  font-size: 14px;
-}
+/* 筛选栏样式统一在 global.css 的 .admin-filter-bar 里 */
 
 /* 用户单元格 */
 .cell-user {
@@ -236,16 +232,6 @@ onMounted(() => loadData())
 }
 
 @media (max-width: 768px) {
-  .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .filter-item {
-    width: 100%;
-  }
-
   .table-wrap {
     display: none;
   }
